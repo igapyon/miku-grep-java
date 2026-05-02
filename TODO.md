@@ -36,3 +36,31 @@
   - Result on 2026-05-02: added `DocumentationSyncTest` to guard README,
     Java CLI spec, parity doc, help text pointers, and distribution assembly
     runtime-facing contents.
+
+## Security Hardening
+
+- [ ] Reduce regex ReDoS residual risk
+  - Current validation rejects nested quantified groups, but Java `Pattern`
+    can still backtrack heavily on other ambiguous patterns such as
+    `(a|aa)+$`.
+  - Consider an automation-safe mode that disables regex, a stricter
+    safe-regex checker, or a bounded execution strategy with timeout.
+
+- [ ] Add CLI stdin request-size limit
+  - `MikuGrepCli.readAll` currently reads stdin into memory without an explicit
+    maximum size.
+  - Add a clear request JSON byte limit, for example 1 MiB to 10 MiB, and return
+    a controlled CLI error when the limit is exceeded.
+
+- [ ] Document or strengthen TOCTOU assumptions
+  - Search performs realpath boundary checks before reading files, leaving a
+    theoretical race if another process swaps entries between check and read.
+  - For local-first CLI use this may be acceptable; if hostile concurrent file
+    changes are in scope, investigate descriptor-based open/fstat/read and
+    no-follow handling.
+
+- [ ] Harden release GitHub Actions supply chain
+  - Release workflow actions are tag-pinned, e.g. `actions/checkout@v4`,
+    `actions/setup-java@v4`, and `softprops/action-gh-release@v2`.
+  - Consider SHA pinning for release-capable actions and narrowing
+    `permissions` at the job level.
