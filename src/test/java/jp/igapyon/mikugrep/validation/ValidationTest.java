@@ -49,7 +49,7 @@ class ValidationTest {
     }
 
     @Test
-    void appendsUserExcludesAndOverridesRecursiveDepth() throws Exception {
+    void replacesDefaultExcludesAndOverridesRecursiveDepth() throws Exception {
         ValidationResult result = Validation.validateAndNormalize("{"
                 + "\"version\":1,"
                 + "\"root\":\".\","
@@ -65,8 +65,19 @@ class ValidationTest {
         assertTrue(result.ok);
         assertEquals(Integer.valueOf(0), result.effectiveRequest.search.maxDepth);
         assertEquals(Arrays.asList("*.java"), result.effectiveRequest.search.includeFileNamePatterns);
-        assertTrue(result.effectiveRequest.search.excludeFileNamePatterns.contains("README.md"));
-        assertTrue(result.effectiveRequest.search.excludeDirNamePatterns.contains("skip"));
+        assertEquals(Arrays.asList("README.md"), result.effectiveRequest.search.excludeFileNamePatterns);
+        assertEquals(Arrays.asList("skip"), result.effectiveRequest.search.excludeDirNamePatterns);
+    }
+
+    @Test
+    void usesRequestExcludePatternsAsReplacementForDefaultExcludes() throws Exception {
+        ValidationResult fileResult = Validation.validateAndNormalize(baseRequestWith("\"search\":{\"excludeFileNamePatterns\":[]}"));
+        ValidationResult dirResult = Validation.validateAndNormalize(baseRequestWith("\"search\":{\"excludeDirNamePatterns\":[]}"));
+
+        assertTrue(fileResult.ok);
+        assertEquals(0, fileResult.effectiveRequest.search.excludeFileNamePatterns.size());
+        assertTrue(dirResult.ok);
+        assertEquals(0, dirResult.effectiveRequest.search.excludeDirNamePatterns.size());
     }
 
     @Test
@@ -89,6 +100,8 @@ class ValidationTest {
         assertInvalid(Validation.validateAndNormalize(baseRequestWith("\"output\":[]")), "invalid_request");
         assertInvalid(Validation.validateAndNormalize(baseRequestWith("\"encoding\":[]")), "invalid_request");
         assertInvalid(Validation.validateAndNormalize(baseRequestWith("\"search\":{\"includeFileNamePatterns\":[\"*.txt\",1]}")), "invalid_request");
+        assertInvalid(Validation.validateAndNormalize(baseRequestWith("\"search\":{\"excludeFileNamePatterns\":null}")), "invalid_request");
+        assertInvalid(Validation.validateAndNormalize(baseRequestWith("\"search\":{\"excludeDirNamePatterns\":null}")), "invalid_request");
         assertInvalid(Validation.validateAndNormalize(baseRequestWith("\"encoding\":{\"rules\":[{\"fileNamePattern\":\"*.txt\",\"encoding\":\"utf-8\",\"extra\":true}]}")), "unknown_field");
     }
 

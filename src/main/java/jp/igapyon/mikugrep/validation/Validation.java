@@ -154,8 +154,12 @@ public final class Validation {
         }
 
         List<String> includeFileNamePatterns = stringArrayOrEmpty(input.get("includeFileNamePatterns"));
-        List<String> excludeFileNamePatterns = stringArrayOrEmpty(input.get("excludeFileNamePatterns"));
-        List<String> excludeDirNamePatterns = stringArrayOrEmpty(input.get("excludeDirNamePatterns"));
+        List<String> excludeFileNamePatterns = input.has("excludeFileNamePatterns")
+                ? stringArray(input.get("excludeFileNamePatterns"))
+                : RequestContract.DEFAULT_EXCLUDE_FILES;
+        List<String> excludeDirNamePatterns = input.has("excludeDirNamePatterns")
+                ? stringArray(input.get("excludeDirNamePatterns"))
+                : RequestContract.DEFAULT_EXCLUDE_DIRS;
         if (includeFileNamePatterns == null) {
             return SearchBuildResult.invalid("invalid_request", "search.includeFileNamePatterns must be an array of strings");
         }
@@ -172,8 +176,8 @@ public final class Validation {
         search.maxFilesVisited = Integer.valueOf(maxFilesVisited.intValue());
         search.maxDirectoriesVisited = Integer.valueOf(maxDirectoriesVisited.intValue());
         search.includeFileNamePatterns = includeFileNamePatterns;
-        search.excludeFileNamePatterns = concat(RequestContract.DEFAULT_EXCLUDE_FILES, excludeFileNamePatterns);
-        search.excludeDirNamePatterns = concat(RequestContract.DEFAULT_EXCLUDE_DIRS, excludeDirNamePatterns);
+        search.excludeFileNamePatterns = excludeFileNamePatterns;
+        search.excludeDirNamePatterns = excludeDirNamePatterns;
         return SearchBuildResult.ok(search);
     }
 
@@ -343,6 +347,10 @@ public final class Validation {
         if (node == null || node.isNull()) {
             return Collections.emptyList();
         }
+        return stringArray(node);
+    }
+
+    private static List<String> stringArray(JsonNode node) {
         if (!node.isArray()) {
             return null;
         }
@@ -354,13 +362,6 @@ public final class Validation {
             values.add(item.textValue());
         }
         return values;
-    }
-
-    private static List<String> concat(List<String> first, List<String> second) {
-        List<String> result = new ArrayList<String>(first.size() + second.size());
-        result.addAll(first);
-        result.addAll(second);
-        return result;
     }
 
     private static boolean truthy(String value) {

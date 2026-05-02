@@ -34,6 +34,52 @@ follow-up:
 
 ```text
 upstream file:
+  vendor/miku-grep/src/validation.ts
+  vendor/miku-grep/src/help.ts
+  vendor/miku-grep/docs/miku-grep-cli-spec.md
+  vendor/miku-grep/test/validation.test.ts
+  vendor/miku-grep/test/search-content.test.ts
+  vendor/miku-grep/test/search-filename.test.ts
+
+java classes:
+  jp.igapyon.mikugrep.validation.Validation
+  jp.igapyon.mikugrep.cli.HelpText
+
+tests:
+  jp.igapyon.mikugrep.validation.ValidationTest
+  jp.igapyon.mikugrep.search.SearchTest
+  jp.igapyon.mikugrep.cli.MikuGrepCliTest
+
+diff summary:
+  behavior diff:
+    - Upstream now treats request excludeFileNamePatterns and
+      excludeDirNamePatterns as replacements for default excludes when those
+      fields are specified.
+    - Omitted exclude pattern fields keep the default exclude preset.
+    - Empty exclude pattern arrays now allow default-excluded files or
+      directories to be included by request.
+  naming diff:
+    - Java field names remain aligned with upstream JSON field names.
+  unmigrated diff:
+    - Node release bundle workflow is vendored under vendor/miku-grep but is
+      not a Java runtime workflow.
+  Java-side extension:
+    - Java package version and CLI --version output are aligned to 0.8.1.
+
+follow-up:
+  - Updated Validation to preserve the upstream replacement semantics.
+  - Updated HelpText and Java CLI specification wording for exclude defaults.
+  - Added focused Java tests for empty exclude arrays and omitted default
+    excludes.
+  - `mvn test -Dtest=ValidationTest,SearchTest,MikuGrepCliTest,DocumentationSyncTest`
+    passed.
+  - `mvn test` passed.
+  - `mvn package` passed and created `target/miku-grep-0.8.1-dist.zip`.
+  - `java -jar target/miku-grep.jar --version` printed `miku-grep 0.8.1`.
+```
+
+```text
+upstream file:
   vendor/miku-grep
 
 java classes:

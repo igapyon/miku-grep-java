@@ -103,9 +103,9 @@ Planned focused regression commands:
 
 - `mvn test -Dtest=DocumentationSyncTest,MikuGrepCliTest` succeeded.
 - `mvn test -Dtest=MikuGrepCliTest` succeeded.
-- `mvn package` succeeded with 50 tests.
-- `mvn package` succeeded and created `target/miku-grep-0.5.0-dist.zip`.
-- `target/miku-grep-0.5.0-dist.zip` includes `docs/miku-grep-cli-spec.md`.
+- `mvn package` succeeded with 55 tests.
+- `mvn package` succeeded and created `target/miku-grep-0.8.1-dist.zip`.
+- `target/miku-grep-0.8.1-dist.zip` includes `docs/miku-grep-cli-spec.md`.
 - `java -jar target/miku-grep.jar --version` succeeded.
 - `java -jar target/miku-grep.jar --help` succeeded.
 

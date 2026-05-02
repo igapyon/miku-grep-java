@@ -5,7 +5,7 @@
 
   <groupId>jp.igapyon</groupId>
   <artifactId>miku-grep</artifactId>
-  <version>0.5.0</version>
+  <version>0.8.1</version>
   <packaging>jar</packaging>
 
   <name>miku-grep-java</name>

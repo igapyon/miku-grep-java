@@ -17,7 +17,7 @@ java -jar target/miku-grep.jar --help
 Distribution zip users can run the versioned jar inside the extracted archive:
 
 ```bash
-java -jar miku-grep-0.5.0.jar < request.json > result.json
+java -jar miku-grep-0.8.1.jar < request.json > result.json
 ```
 
 ## Stdio Contract
@@ -77,6 +77,19 @@ Unknown request fields are validation errors.
   }
 }
 ```
+
+## Include / Exclude Defaults
+
+`includeFileNamePatterns` and `excludeFileNamePatterns` match file basenames.
+`excludeDirNamePatterns` matches directory basenames.
+
+When `excludeFileNamePatterns` is omitted, the default file exclude preset is
+used. When specified, the request value replaces the default file exclude
+preset. An empty array means no file name excludes.
+
+When `excludeDirNamePatterns` is omitted, the default directory exclude preset
+is used. When specified, the request value replaces the default directory
+exclude preset. An empty array means no directory name excludes.
 
 ## Runtime Differences
 

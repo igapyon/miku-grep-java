@@ -22,7 +22,7 @@ class MikuGrepCliTest {
         CliRun run = run(new String[] { "--version" }, "");
 
         assertEquals(0, run.exitCode);
-        assertEquals("miku-grep 0.5.0\n", run.stdout);
+        assertEquals("miku-grep 0.8.1\n", run.stdout);
         assertEquals("", run.stderr);
     }
 
