@@ -62,6 +62,11 @@ These differences should be documented as runtime differences when they affect
 observable behavior. They should not be used as a reason to change JSON field
 names, result shape, default values, diagnostic codes, or exit code policy.
 
+For Shift_JIS, the Java runtime uses standard charset handling instead of
+bringing over the upstream Node-side decoder dependency. This is not an
+unported feature. It is an implementation difference to record when malformed
+byte handling or other edge cases become observably different.
+
 ## JSON Ordering
 
 The Java implementation should preserve stable JSON object ordering where the
