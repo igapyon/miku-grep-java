@@ -49,7 +49,6 @@ jobs:
           mkdir -p release-assets
           cp target/miku-grep.jar "release-assets/miku-grep-${VERSION}.jar"
           cp target/miku-grep-sources.jar "release-assets/miku-grep-sources-${VERSION}.jar"
-          cp target/miku-grep-"${POM_VERSION}"-dist.zip "release-assets/miku-grep-${VERSION}-dist.zip"
 
       - name: Set up Java 8 for runtime verification
         uses: actions/setup-java@v4
