@@ -16,6 +16,7 @@ upstream file:
 
 java classes:
   jp.igapyon.mikugrep.contract.RequestContract
+  jp.igapyon.mikugrep.contract.RequestFieldShape
 
 notes:
   - Holds schema version, default values, limit values, default excludes, and
@@ -35,15 +36,20 @@ java classes:
   jp.igapyon.mikugrep.model.MikuGrepResult
   jp.igapyon.mikugrep.model.Diagnostic
   jp.igapyon.mikugrep.model.Summary
-  jp.igapyon.mikugrep.model.DetailMatch
+  jp.igapyon.mikugrep.model.MikuGrepMatch
+  jp.igapyon.mikugrep.model.FilenameMatch
+  jp.igapyon.mikugrep.model.ContentMatch
   jp.igapyon.mikugrep.model.FileSummaryMatch
+  jp.igapyon.mikugrep.model.FileSummarySnippet
   jp.igapyon.mikugrep.model.EncodingRuleInput
   jp.igapyon.mikugrep.model.EncodingRuleResult
+  jp.igapyon.mikugrep.json.MikuGrepJson
 
 notes:
   - Model field names should preserve upstream JSON names.
   - JSON output ordering should be stable and should follow the upstream
     contract where visible.
+  - `MikuGrepJson` is the Jackson helper for request / result JSON handling.
 ```
 
 ```text
@@ -96,7 +102,6 @@ java classes:
   jp.igapyon.mikugrep.search.Search
   jp.igapyon.mikugrep.search.SearchResult
   jp.igapyon.mikugrep.search.SearchState
-  jp.igapyon.mikugrep.encoding.EncodingSelector
 
 notes:
   - Covers traversal, filename search, content search, diagnostics, summary
