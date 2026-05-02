@@ -68,6 +68,30 @@ Use ordered data structures or explicit serialization order for result objects.
 In particular, `effectiveRequest`, `summary`, diagnostics, and match objects
 should not depend on reflection order or unordered map iteration.
 
+## JSON Implementation Policy
+
+The Java implementation should use Jackson for request JSON parsing and result
+JSON serialization.
+
+Jackson is an implementation detail. The observable contract remains the
+upstream Node.js CLI JSON contract.
+
+Jackson dependencies should be treated as Apache License 2.0 dependencies,
+aligned with this repository's license.
+
+Expected Maven dependency:
+
+- `com.fasterxml.jackson.core:jackson-databind`
+
+Expected transitive dependencies:
+
+- `com.fasterxml.jackson.core:jackson-core`
+- `com.fasterxml.jackson.core:jackson-annotations`
+
+Do not rely on Jackson defaults when they would change field names, field
+ordering, null handling, unknown-field behavior, pretty printing, or diagnostic
+codes.
+
 ## Boundary Rule
 
 Java runtime convenience should not leak into the JSON contract.
