@@ -78,6 +78,8 @@ behavior.
 - regex engine differences between Node.js `RegExp` and Java `Pattern`
 - Shift_JIS decoder behavior differences between upstream Node dependencies and
   Java charset handling
+  - Java uses standard charset handling; no additional decoder dependency is
+    needed for the straight-conversion runtime.
 
 ## Focused Regression
 
