@@ -8,7 +8,8 @@ straight conversion.
 The Java runtime should preserve the stdin / stdout JSON contract of the
 upstream Node.js `miku-grep` CLI as the primary compatibility target.
 
-The Java implementation should start as a single-module Maven runtime jar.
+The Java implementation is a single-module Maven runtime jar with a
+distribution zip created during packaging.
 
 Fixed Java-side identity:
 
@@ -42,6 +43,8 @@ following items.
 - 2-space pretty-printed JSON on stdout
 - trailing newline after stdout JSON
 - `--help` and `--version` as stdin-free meta commands
+- Java runtime CLI documentation in `README.md` and
+  `docs/miku-grep-cli-spec.md`
 
 Stdout must not contain progress logs, warnings, or runtime chatter when the
 CLI is returning request results. Agents and scripts should be able to parse
@@ -100,3 +103,16 @@ Path objects, Java exception names, platform-specific separators, absolute
 working paths, and Java-specific diagnostic wording should stay inside the Java
 implementation unless the upstream Node contract already exposes equivalent
 information.
+
+## Documentation Synchronization
+
+The following Java-side documents and command output describe the same public
+CLI contract and should be updated together:
+
+- `README.md`
+- `docs/miku-grep-cli-spec.md`
+- `docs/cli-json-parity.md`
+- `java -jar target/miku-grep.jar --help`
+
+Java-side runtime differences should be explicit in these documents instead of
+silently inheriting Node.js-only wording.

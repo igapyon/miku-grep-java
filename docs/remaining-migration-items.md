@@ -2,7 +2,8 @@
 
 ## Current State
 
-The repository is in the pre-implementation stage of straight conversion.
+The repository has started the first Java straight-conversion implementation
+unit.
 
 Completed preparation:
 
@@ -14,6 +15,42 @@ Completed preparation:
 - upstream class mapping in `docs/upstream-class-mapping.md`
 - upstream test mapping in `docs/upstream-test-mapping.md`
 - development workflow note in `docs/development.md`
+
+Completed implementation:
+
+- Maven skeleton
+- Java 1.8 compiler configuration
+- JUnit Jupiter test setup
+- Jackson dependency
+- executable runtime jar main class configuration
+- minimal CLI entry point
+- request / effective request / result / diagnostic / match / summary models
+- stable JSON field-name and field-order tests
+- Jackson request / result JSON helper
+- request contract version, defaults, limits, default excludes, and request
+  shape metadata
+- glob matching helper
+- regex safety helper
+- path security helper
+- focused tests for JSON support, request contract, glob matching, regex
+  safety, and path security
+- validation layer for unknown fields, default expansion, limits, regex checks,
+  encoding rules, and diagnostic codes
+- focused tests for validation
+- result builder for top-level result shape, summary diagnostic count, and
+  diagnostic sorting
+- focused tests for result builder
+- search layer for traversal, filename/content search, snippet trimming,
+  summary counts, diagnostics, and encoding selection
+- core API facade for request validation, root checks, search execution, and
+  result assembly
+- CLI stdin JSON execution, stdout result JSON, stderr error messages, and
+  exit codes
+- focused tests for search, core API, and CLI
+- upstream-aligned detailed `--help` text
+- root README for Java runtime usage and build outputs
+- distribution zip packaging with runtime jar, README, LICENSE, and docs
+- Java runtime CLI spec and documentation synchronization test
 
 Fixed implementation direction:
 
@@ -29,55 +66,9 @@ Fixed implementation direction:
 
 ## Pending Implementation Units
 
-Initial implementation should proceed in this order.
+Initial straight-conversion implementation units are complete.
 
-1. Maven skeleton
-   - `pom.xml`
-   - Java 1.8 compiler configuration
-   - JUnit Jupiter
-   - Jackson dependency
-   - runtime jar main class configuration
-2. model and JSON support
-   - request / effective request / result / diagnostic / match / summary models
-   - stable JSON field names and ordering
-   - JSON parse / stringify helper around Jackson
-3. request contract
-   - version
-   - defaults
-   - limits
-   - default excludes
-4. small pure helpers
-   - regex safety
-   - path security
-   - glob matching
-5. validation
-   - unknown-field handling
-   - default expansion
-   - limit checks
-   - diagnostic codes
-6. result builder
-   - top-level result shape
-   - diagnostic sorting
-   - summary diagnostic count
-7. search
-   - directory traversal
-   - filename search
-   - content search
-   - snippet trimming
-   - summary counts
-   - diagnostics
-   - encoding selection and decode behavior
-8. CLI
-   - stdin request JSON
-   - stdout result JSON
-   - stderr usage / malformed stdin / unexpected runtime messages
-   - `--help`
-   - `--version`
-   - exit codes
-9. packaging
-   - executable runtime jar
-   - sources jar
-   - optional distribution zip when useful
+Next work should move to maintenance checks and upstream-following operation.
 
 ## Known Runtime Difference Items
 
@@ -93,24 +84,29 @@ behavior.
 Planned focused regression commands:
 
 - `mvn test -Dtest=RegexSafetyTest,PathSecurityTest`
+- `mvn test -Dtest=MikuGrepJsonTest`
+- `mvn test -Dtest=RequestContractTest`
+- `mvn test -Dtest=GlobTest`
 - `mvn test -Dtest=ValidationTest`
-- `mvn test -Dtest=SearchContentTest,SearchFilenameTest`
+- `mvn test -Dtest=ResultBuilderTest`
+- `mvn test -Dtest=SearchTest`
 - `mvn test -Dtest=EncodingDiagnosticsTest,LimitsTest`
+- `mvn test -Dtest=MikuGrepTest`
 - `mvn test -Dtest=MikuGrepCliTest`
+- `mvn test -Dtest=DocumentationSyncTest`
+- `mvn package`
 - `mvn test`
 
 ## Latest Verification
 
-- Not yet run.
-
-The Maven skeleton and Java tests do not exist yet. Docs-only preparation has
-been performed before Java implementation starts.
+- `mvn test -Dtest=DocumentationSyncTest,MikuGrepCliTest` succeeded.
+- `mvn test -Dtest=MikuGrepCliTest` succeeded.
+- `mvn package` succeeded with 50 tests.
+- `mvn package` succeeded and created `target/miku-grep-0.5.0-dist.zip`.
+- `target/miku-grep-0.5.0-dist.zip` includes `docs/miku-grep-cli-spec.md`.
+- `java -jar target/miku-grep.jar --version` succeeded.
+- `java -jar target/miku-grep.jar --help` succeeded.
 
 ## Next Step
 
-Create the Maven skeleton and the first Java implementation unit:
-
-- `pom.xml`
-- `src/main/java/jp/igapyon/mikugrep/...`
-- `src/test/java/jp/igapyon/mikugrep/...`
-- initial tests for `RegexSafety` and `PathSecurity`
+Move to maintenance checks and upstream-following operation.

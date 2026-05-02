@@ -18,6 +18,66 @@ treated as regressions unless explicitly documented.
 
 ```text
 upstream test / intent:
+  vendor/miku-grep/src/request-contract.ts
+  upstream request version, defaults, limits, default excludes, and request shape
+
+java tests:
+  jp.igapyon.mikugrep.contract.RequestContractTest
+
+fixtures:
+  inline request JSON
+
+focused regression:
+  mvn test -Dtest=RequestContractTest
+```
+
+```text
+upstream test / intent:
+  vendor/miku-grep/src/public-types.ts
+  stable CLI JSON request / result field names and field order
+
+java tests:
+  jp.igapyon.mikugrep.json.MikuGrepJsonTest
+
+fixtures:
+  inline request and result objects
+
+focused regression:
+  mvn test -Dtest=MikuGrepJsonTest
+```
+
+```text
+upstream test / intent:
+  vendor/miku-grep/src/result.ts
+  top-level result shape, summary diagnostics count, and diagnostics sorting
+
+java tests:
+  jp.igapyon.mikugrep.result.ResultBuilderTest
+
+fixtures:
+  inline summary and diagnostic objects
+
+focused regression:
+  mvn test -Dtest=ResultBuilderTest
+```
+
+```text
+upstream test / intent:
+  vendor/miku-grep/src/glob.ts
+  MVP glob matching used by include / exclude patterns and encoding rules
+
+java tests:
+  jp.igapyon.mikugrep.glob.GlobTest
+
+fixtures:
+  inline glob patterns and paths
+
+focused regression:
+  mvn test -Dtest=GlobTest
+```
+
+```text
+upstream test / intent:
   vendor/miku-grep/test/validation.test.ts
 
 java tests:
@@ -64,13 +124,13 @@ upstream test / intent:
   vendor/miku-grep/test/search-content.test.ts
 
 java tests:
-  jp.igapyon.mikugrep.search.SearchContentTest
+  jp.igapyon.mikugrep.search.SearchTest
 
 fixtures:
   temporary files from JUnit TempDir
 
 focused regression:
-  mvn test -Dtest=SearchContentTest
+  mvn test -Dtest=SearchTest
 ```
 
 ```text
@@ -78,13 +138,13 @@ upstream test / intent:
   vendor/miku-grep/test/search-filename.test.ts
 
 java tests:
-  jp.igapyon.mikugrep.search.SearchFilenameTest
+  jp.igapyon.mikugrep.search.SearchTest
 
 fixtures:
   temporary files from JUnit TempDir
 
 focused regression:
-  mvn test -Dtest=SearchFilenameTest
+  mvn test -Dtest=SearchTest
 ```
 
 ```text
@@ -92,13 +152,13 @@ upstream test / intent:
   vendor/miku-grep/test/encoding-diagnostics.test.ts
 
 java tests:
-  jp.igapyon.mikugrep.encoding.EncodingDiagnosticsTest
+  jp.igapyon.mikugrep.search.SearchTest
 
 fixtures:
   temporary files from JUnit TempDir
 
 focused regression:
-  mvn test -Dtest=EncodingDiagnosticsTest
+  mvn test -Dtest=SearchTest
 ```
 
 ```text
@@ -106,20 +166,22 @@ upstream test / intent:
   vendor/miku-grep/test/limits.test.ts
 
 java tests:
-  jp.igapyon.mikugrep.search.LimitsTest
+  jp.igapyon.mikugrep.search.SearchTest
 
 fixtures:
   temporary files from JUnit TempDir
 
 focused regression:
-  mvn test -Dtest=LimitsTest
+  mvn test -Dtest=SearchTest
 ```
 
 ```text
 upstream test / intent:
   vendor/miku-grep/test/cli-meta.test.ts
+  vendor/miku-grep/src/main.ts
 
 java tests:
+  jp.igapyon.mikugrep.coreapi.MikuGrepTest
   jp.igapyon.mikugrep.cli.MikuGrepCliTest
 
 fixtures:
@@ -127,6 +189,7 @@ fixtures:
   temporary files from JUnit TempDir where subprocess-style behavior is needed
 
 focused regression:
+  mvn test -Dtest=MikuGrepTest
   mvn test -Dtest=MikuGrepCliTest
 ```
 
@@ -144,11 +207,36 @@ focused regression:
   used through the focused tests above
 ```
 
+```text
+upstream test / intent:
+  vendor/miku-grep/src/help.ts
+  vendor/miku-grep/docs/miku-grep-cli-spec.md
+  Java-side runtime packaging documentation
+
+java tests:
+  jp.igapyon.mikugrep.docs.DocumentationSyncTest
+
+fixtures:
+  README.md
+  docs/miku-grep-cli-spec.md
+  docs/cli-json-parity.md
+  src/assembly/dist.xml
+  jp.igapyon.mikugrep.cli.HelpText
+
+focused regression:
+  mvn test -Dtest=DocumentationSyncTest
+```
+
 ## Suggested Initial Regression Order
 
 1. `mvn test -Dtest=RegexSafetyTest,PathSecurityTest`
-2. `mvn test -Dtest=ValidationTest`
-3. `mvn test -Dtest=SearchContentTest,SearchFilenameTest`
-4. `mvn test -Dtest=EncodingDiagnosticsTest,LimitsTest`
-5. `mvn test -Dtest=MikuGrepCliTest`
-6. `mvn test`
+2. `mvn test -Dtest=MikuGrepJsonTest`
+3. `mvn test -Dtest=RequestContractTest`
+4. `mvn test -Dtest=GlobTest`
+5. `mvn test -Dtest=ValidationTest`
+6. `mvn test -Dtest=ResultBuilderTest`
+7. `mvn test -Dtest=SearchTest`
+8. `mvn test -Dtest=MikuGrepTest`
+9. `mvn test -Dtest=MikuGrepCliTest`
+10. `mvn test -Dtest=DocumentationSyncTest`
+11. `mvn test`

@@ -18,7 +18,8 @@ This document does not try to be the user-facing usage guide.
 
 ## Repository Structure
 
-This repository is intended to start as a single-module Maven runtime jar.
+This repository is a single-module Maven runtime jar with an optional
+distribution zip created during packaging.
 
 - repository root
   - Maven project `miku-grep`
@@ -42,7 +43,7 @@ described in `docs/cli-json-parity.md`.
 - build tool: Maven
 - test framework: JUnit Jupiter
 - primary verification command: `mvn test`
-- packaging direction: single executable runtime jar
+- packaging direction: single executable runtime jar and distribution zip
 - base package: `jp.igapyon.mikugrep`
 - Maven groupId: `jp.igapyon`
 - Maven artifactId: `miku-grep`
@@ -111,10 +112,17 @@ Planned focused regression commands:
 
 ```bash
 mvn test -Dtest=RegexSafetyTest,PathSecurityTest
+mvn test -Dtest=MikuGrepJsonTest
+mvn test -Dtest=RequestContractTest
+mvn test -Dtest=GlobTest
 mvn test -Dtest=ValidationTest
-mvn test -Dtest=SearchContentTest,SearchFilenameTest
-mvn test -Dtest=EncodingDiagnosticsTest,LimitsTest
+mvn test -Dtest=ResultBuilderTest
+mvn test -Dtest=SearchTest
+mvn test -Dtest=MikuGrepTest
 mvn test -Dtest=MikuGrepCliTest
+mvn test -Dtest=DocumentationSyncTest
+mvn test
+mvn package
 ```
 
 The canonical test mapping is `docs/upstream-test-mapping.md`.
