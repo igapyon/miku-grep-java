@@ -53,7 +53,7 @@ stdout is reserved for result JSON except for `--version` and `--help`.
   - executable shaded runtime jar
 - `target/miku-grep-sources.jar`
   - source jar
-- `target/miku-grep-0.5.0-dist.zip`
+- `target/miku-grep-0.8.1-dist.zip`
   - distribution zip containing the versioned runtime jar, README, LICENSE,
     and runtime-oriented docs
 

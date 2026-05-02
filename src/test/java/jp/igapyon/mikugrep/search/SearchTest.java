@@ -81,6 +81,25 @@ class SearchTest {
     }
 
     @Test
+    void canIncludeDefaultExcludedDirectoriesWhenExcludeDirectoryPatternsAreEmpty() throws Exception {
+        write("node_modules/pkg/index.txt", "RepositoryMap\n");
+
+        SearchResult result = run("{\"target\":\"content\",\"excludeDirNamePatterns\":[]}", "{\"mode\":\"detail\"}", "RepositoryMap");
+
+        assertEquals(1, result.matches.size());
+        assertContent(result.matches.get(0), "node_modules/pkg/index.txt", 1, 1, "RepositoryMap");
+    }
+
+    @Test
+    void omittedExcludeDirectoryPatternsKeepDefaultNodeModulesExclusion() throws Exception {
+        write("node_modules/pkg/index.txt", "RepositoryMap\n");
+
+        SearchResult result = run("{\"target\":\"content\"}", "{\"mode\":\"detail\"}", "RepositoryMap");
+
+        assertEquals(0, result.matches.size());
+    }
+
+    @Test
     void filenameAndBothSearchFollowUpstreamOrderingAndAggregation() throws Exception {
         write("b-RepositoryMap.txt", "RepositoryMap\n");
         write("a-RepositoryMap.txt", "x\nRepositoryMap\n");
@@ -114,6 +133,25 @@ class SearchTest {
         SearchResult includeDoesNotMatchPath = run("{\"target\":\"filename\",\"includeFileNamePatterns\":[\"src/App.java\"]}", "{\"mode\":\"detail\"}", "App.java");
         assertEquals(0, includeDoesNotMatchPath.matches.size());
         assertEquals(0, includeDoesNotMatchPath.summary.filesScanned);
+    }
+
+    @Test
+    void canIncludeDefaultExcludedZipFilesWhenExcludeFilePatternsAreEmpty() throws Exception {
+        write("artifact.zip", "not read for filename search\n");
+
+        SearchResult result = run("{\"target\":\"filename\",\"includeFileNamePatterns\":[\"*.zip\"],\"excludeFileNamePatterns\":[]}", "{\"mode\":\"detail\"}", "\\.zip$", "regex");
+
+        assertEquals(1, result.matches.size());
+        assertEquals("artifact.zip", ((FilenameMatch) result.matches.get(0)).file);
+    }
+
+    @Test
+    void omittedExcludeFilePatternsKeepDefaultZipExclusion() throws Exception {
+        write("artifact.zip", "not read for filename search\n");
+
+        SearchResult result = run("{\"target\":\"filename\",\"includeFileNamePatterns\":[\"*.zip\"]}", "{\"mode\":\"detail\"}", "\\.zip$", "regex");
+
+        assertEquals(0, result.matches.size());
     }
 
     @Test

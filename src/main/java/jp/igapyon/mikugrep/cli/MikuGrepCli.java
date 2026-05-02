@@ -13,6 +13,8 @@ import jp.igapyon.mikugrep.json.MikuGrepJson;
 import jp.igapyon.mikugrep.model.MikuGrepResult;
 
 public final class MikuGrepCli {
+    public static final String PRODUCT_VERSION = "0.8.1";
+
     private MikuGrepCli() {
     }
 
@@ -26,7 +28,7 @@ public final class MikuGrepCli {
 
     public static int run(String[] args, InputStream in, PrintStream out, PrintStream err) {
         if (args.length == 1 && "--version".equals(args[0])) {
-            out.print("miku-grep 0.5.0\n");
+            out.print("miku-grep " + PRODUCT_VERSION + "\n");
             return 0;
         }
         if (args.length == 1 && ("--help".equals(args[0]) || "-h".equals(args[0]))) {
