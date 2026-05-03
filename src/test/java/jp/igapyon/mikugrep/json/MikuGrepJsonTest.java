@@ -16,6 +16,8 @@ import jp.igapyon.mikugrep.model.EncodingRuleResult;
 import jp.igapyon.mikugrep.model.EncodingRuleType;
 import jp.igapyon.mikugrep.model.FileSummaryMatch;
 import jp.igapyon.mikugrep.model.FileSummarySnippet;
+import jp.igapyon.mikugrep.model.IgnoreMode;
+import jp.igapyon.mikugrep.model.IgnoreOptions;
 import jp.igapyon.mikugrep.model.MatchType;
 import jp.igapyon.mikugrep.model.MikuGrepRequest;
 import jp.igapyon.mikugrep.model.MikuGrepResult;
@@ -77,7 +79,7 @@ class MikuGrepJsonTest {
                 + "\"root\":\".\","
                 + "\"query\":{\"type\":\"literal\",\"text\":\"RepositoryMap\"},"
                 + "\"search\":{"
-                + "\"target\":\"content\","
+                + "\"targets\":[\"content\"],"
                 + "\"recursive\":true,"
                 + "\"maxDepth\":20,"
                 + "\"maxFileBytes\":10485760,"
@@ -89,19 +91,22 @@ class MikuGrepJsonTest {
                 + "\"excludeDirNamePatterns\":[\".git\"]"
                 + "},"
                 + "\"output\":{"
-                + "\"mode\":\"file-summary\","
+                + "\"mode\":\"summary\","
                 + "\"maxMatches\":200,"
                 + "\"maxMatchesPerFile\":20,"
                 + "\"maxLineLength\":240,"
-                + "\"maxSnippetsPerFile\":3"
+                + "\"maxSnippetsPerFile\":3,"
+                + "\"contextLinesBefore\":0,"
+                + "\"contextLinesAfter\":0"
                 + "},"
-                + "\"encoding\":{\"default\":\"utf-8\",\"rules\":[],\"onDecodeError\":\"skip\"}"
+                + "\"encoding\":{\"default\":\"utf-8\",\"rules\":[],\"onDecodeError\":\"skip\"},"
+                + "\"ignore\":{\"mode\":\"auto\",\"sources\":[\".gitignore\",\".ignore\",\".git/info/exclude\"],\"useGlobalGitignore\":false,\"loadedSources\":[]}"
                 + "},"
                 + "\"matches\":[{"
                 + "\"type\":\"file\","
                 + "\"file\":\"README.md\","
                 + "\"matchTypes\":[\"content\"],"
-                + "\"filenameMatched\":false,"
+                + "\"filepathMatched\":false,"
                 + "\"contentMatched\":true,"
                 + "\"lines\":[1],"
                 + "\"matchCount\":1,"
@@ -111,8 +116,13 @@ class MikuGrepJsonTest {
                 + "}],"
                 + "\"summary\":{"
                 + "\"filesVisited\":1,"
+                + "\"directoriesVisited\":0,"
                 + "\"filesScanned\":1,"
+                + "\"directoriesScanned\":0,"
                 + "\"filesMatched\":1,"
+                + "\"directoriesMatched\":0,"
+                + "\"filesIgnored\":0,"
+                + "\"directoriesIgnored\":0,"
                 + "\"matches\":1,"
                 + "\"diagnostics\":0,"
                 + "\"truncated\":false,"
@@ -129,7 +139,7 @@ class MikuGrepJsonTest {
         request.query.type = QueryType.LITERAL;
         request.query.text = "RepositoryMap";
         request.search = new SearchOptions();
-        request.search.target = SearchTarget.CONTENT;
+        request.search.targets = Collections.singletonList(SearchTarget.CONTENT);
         request.search.recursive = Boolean.TRUE;
         request.search.maxDepth = 20;
         request.search.maxFileBytes = 10485760L;
@@ -140,15 +150,22 @@ class MikuGrepJsonTest {
         request.search.excludeFileNamePatterns = Collections.singletonList("*.class");
         request.search.excludeDirNamePatterns = Collections.singletonList(".git");
         request.output = new OutputOptions();
-        request.output.mode = OutputMode.FILE_SUMMARY;
+        request.output.mode = OutputMode.SUMMARY;
         request.output.maxMatches = 200;
         request.output.maxMatchesPerFile = 20;
         request.output.maxLineLength = 240;
         request.output.maxSnippetsPerFile = 3;
+        request.output.contextLinesBefore = 0;
+        request.output.contextLinesAfter = 0;
         request.encoding = new EncodingOptions();
         request.encoding.defaultEncoding = SupportedEncoding.UTF_8;
         request.encoding.rules = Collections.emptyList();
         request.encoding.onDecodeError = "skip";
+        request.ignore = new IgnoreOptions();
+        request.ignore.mode = IgnoreMode.AUTO;
+        request.ignore.sources = Arrays.asList(".gitignore", ".ignore", ".git/info/exclude");
+        request.ignore.useGlobalGitignore = Boolean.FALSE;
+        request.ignore.loadedSources = Collections.emptyList();
         return request;
     }
 
@@ -164,7 +181,7 @@ class MikuGrepJsonTest {
         FileSummaryMatch match = new FileSummaryMatch();
         match.file = "README.md";
         match.matchTypes = Collections.singletonList(MatchType.CONTENT);
-        match.filenameMatched = Boolean.FALSE;
+        match.filepathMatched = Boolean.FALSE;
         match.contentMatched = Boolean.TRUE;
         match.lines = Arrays.asList(1);
         match.matchCount = 1;
@@ -177,8 +194,13 @@ class MikuGrepJsonTest {
     private static Summary summary() {
         Summary summary = new Summary();
         summary.filesVisited = 1;
+        summary.directoriesVisited = 0;
         summary.filesScanned = 1;
+        summary.directoriesScanned = 0;
         summary.filesMatched = 1;
+        summary.directoriesMatched = 0;
+        summary.filesIgnored = 0;
+        summary.directoriesIgnored = 0;
         summary.matches = 1;
         summary.diagnostics = 0;
         summary.truncated = false;

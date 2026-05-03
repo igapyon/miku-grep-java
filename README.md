@@ -38,7 +38,7 @@ stdout is reserved for result JSON except for `--version` and `--help`.
     "text": "RepositoryMap"
   },
   "search": {
-    "target": "content",
+    "targets": ["content"],
     "recursive": true,
     "maxDepth": 8
   }
@@ -53,7 +53,7 @@ stdout is reserved for result JSON except for `--version` and `--help`.
   - executable shaded runtime jar
 - `target/miku-grep-sources.jar`
   - source jar
-- `target/miku-grep-0.8.1-dist.zip`
+- `target/miku-grep-0.8.4-dist.zip`
   - distribution zip containing the versioned runtime jar, README, LICENSE,
     and runtime-oriented docs
 
@@ -81,3 +81,13 @@ The Java runtime intentionally documents these accepted differences:
 
 Other observable JSON contract differences should be treated as regressions
 unless explicitly recorded in the follow-up log.
+
+## v0.8.4 Contract Notes
+
+- Search targets are specified as `search.targets`, a non-empty array of
+  `content`, `filepath`, and/or `directory`.
+- Summary output mode is `output.mode: "summary"`.
+- Detail content matches can include `contextBefore` and `contextAfter` when
+  context line options are requested.
+- Ignore file handling is enabled by default for `.gitignore`, `.ignore`, and
+  `.git/info/exclude`; use `ignore.mode: "none"` to disable it.

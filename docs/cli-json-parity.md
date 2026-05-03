@@ -35,7 +35,7 @@ following items.
 - diagnostic severities
 - `ok`, `error`, `effectiveRequest`, `matches`, `summary`, and `diagnostics`
   structure
-- `detail` and `file-summary` match shapes
+- `detail` and `summary` match shapes
 - root-relative result paths
 - `/` path separators in result JSON
 - no absolute paths in result JSON

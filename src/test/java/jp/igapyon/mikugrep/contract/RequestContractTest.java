@@ -9,6 +9,8 @@ import org.junit.jupiter.api.Test;
 
 import jp.igapyon.mikugrep.json.MikuGrepJson;
 import jp.igapyon.mikugrep.model.EncodingOptions;
+import jp.igapyon.mikugrep.model.IgnoreMode;
+import jp.igapyon.mikugrep.model.IgnoreOptions;
 import jp.igapyon.mikugrep.model.OutputMode;
 import jp.igapyon.mikugrep.model.OutputOptions;
 import jp.igapyon.mikugrep.model.SearchOptions;
@@ -56,12 +58,13 @@ class RequestContractTest {
         assertEquals(1000, RequestContract.LIMITS.maxMatchesPerFile);
         assertEquals(4000, RequestContract.LIMITS.maxLineLength);
         assertEquals(100, RequestContract.LIMITS.maxSnippetsPerFile);
+        assertEquals(20, RequestContract.LIMITS.contextLines);
     }
 
     @Test
     void createsUpstreamDefaults() {
         SearchOptions search = RequestContract.DEFAULTS.search();
-        assertEquals(SearchTarget.CONTENT, search.target);
+        assertEquals(Arrays.asList(SearchTarget.CONTENT), search.targets);
         assertEquals(Boolean.TRUE, search.recursive);
         assertEquals(Integer.valueOf(20), search.maxDepth);
         assertEquals(Long.valueOf(10485760L), search.maxFileBytes);
@@ -73,16 +76,24 @@ class RequestContractTest {
         assertEquals(0, search.excludeDirNamePatterns.size());
 
         OutputOptions output = RequestContract.DEFAULTS.output();
-        assertEquals(OutputMode.FILE_SUMMARY, output.mode);
+        assertEquals(OutputMode.SUMMARY, output.mode);
         assertEquals(Integer.valueOf(200), output.maxMatches);
         assertEquals(Integer.valueOf(20), output.maxMatchesPerFile);
         assertEquals(Integer.valueOf(240), output.maxLineLength);
         assertEquals(Integer.valueOf(3), output.maxSnippetsPerFile);
+        assertEquals(Integer.valueOf(0), output.contextLinesBefore);
+        assertEquals(Integer.valueOf(0), output.contextLinesAfter);
 
         EncodingOptions encoding = RequestContract.DEFAULTS.encoding();
         assertEquals(SupportedEncoding.UTF_8, encoding.defaultEncoding);
         assertEquals(0, encoding.rules.size());
         assertEquals("skip", encoding.onDecodeError);
+
+        IgnoreOptions ignore = RequestContract.DEFAULTS.ignore();
+        assertEquals(IgnoreMode.AUTO, ignore.mode);
+        assertEquals(Arrays.asList(".gitignore", ".ignore", ".git/info/exclude"), ignore.sources);
+        assertEquals(Boolean.FALSE, ignore.useGlobalGitignore);
+        assertEquals(0, ignore.loadedSources.size());
     }
 
     @Test
@@ -91,9 +102,10 @@ class RequestContractTest {
                 + "\"version\":1,"
                 + "\"root\":\".\","
                 + "\"query\":{\"type\":\"literal\",\"text\":\"RepositoryMap\"},"
-                + "\"search\":{\"target\":\"content\"},"
-                + "\"output\":{\"mode\":\"file-summary\"},"
-                + "\"encoding\":{\"rules\":[{\"custom\":true}]}"
+                + "\"search\":{\"targets\":[\"content\"]},"
+                + "\"output\":{\"mode\":\"summary\"},"
+                + "\"encoding\":{\"rules\":[{\"custom\":true}]},"
+                + "\"ignore\":{\"mode\":\"auto\"}"
                 + "}")));
         assertEquals("query.extra", RequestContract.REQUEST_SHAPE.findUnknownField(MikuGrepJson.readTree("{"
                 + "\"version\":1,"

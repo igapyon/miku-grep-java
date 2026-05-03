@@ -18,8 +18,13 @@ public final class ResultBuilder {
     public static Summary createSummary() {
         Summary summary = new Summary();
         summary.filesVisited = 0;
+        summary.directoriesVisited = 0;
         summary.filesScanned = 0;
+        summary.directoriesScanned = 0;
         summary.filesMatched = 0;
+        summary.directoriesMatched = 0;
+        summary.filesIgnored = 0;
+        summary.directoriesIgnored = 0;
         summary.matches = 0;
         summary.diagnostics = 0;
         summary.truncated = false;
@@ -73,8 +78,13 @@ public final class ResultBuilder {
     private static Summary summaryWithDiagnosticCount(Summary source, List<Diagnostic> diagnostics) {
         Summary summary = new Summary();
         summary.filesVisited = source.filesVisited;
+        summary.directoriesVisited = source.directoriesVisited;
         summary.filesScanned = source.filesScanned;
+        summary.directoriesScanned = source.directoriesScanned;
         summary.filesMatched = source.filesMatched;
+        summary.directoriesMatched = source.directoriesMatched;
+        summary.filesIgnored = source.filesIgnored;
+        summary.directoriesIgnored = source.directoriesIgnored;
         summary.matches = source.matches;
         summary.diagnostics = diagnostics.size();
         summary.truncated = source.truncated;

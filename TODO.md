@@ -2,6 +2,21 @@
 
 ## Maintenance / Upstream-Following
 
+- [x] Accept upstream `miku-grep` v0.8.4 changes
+  - [x] Fetch and synchronize vendored upstream snapshot at `v0.8.4`.
+  - [x] Record snapshot commit / tag and upstream diff summary in docs.
+  - [x] Update Java request / result contract models:
+    `search.targets`, `output.mode: summary`, context line fields, ignore
+    fields, directory matches, ignored counters, and filepath vocabulary.
+  - [x] Update validation defaults, shape checks, limits, and diagnostics for
+    upstream v0.8.4.
+  - [x] Update search runtime for filepath / directory / content target arrays,
+    detail context lines, ignore-file loading, directory summary matches, and
+    deterministic ordering.
+  - [x] Update CLI help, Java CLI spec, README, follow-up docs, and focused
+    regression tests.
+  - [x] Verify with focused tests, `mvn test`, and `mvn package`.
+
 - [x] Check upstream differences
   - Compare the vendored upstream snapshot in `vendor/miku-grep` with the
     latest upstream `devel` branch.

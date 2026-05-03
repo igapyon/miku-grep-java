@@ -40,8 +40,9 @@ Completed implementation:
 - result builder for top-level result shape, summary diagnostic count, and
   diagnostic sorting
 - focused tests for result builder
-- search layer for traversal, filename/content search, snippet trimming,
-  summary counts, diagnostics, and encoding selection
+- search layer for traversal, filepath/directory/content search, snippet
+  trimming, context lines, ignore files, summary counts, diagnostics, and
+  encoding selection
 - core API facade for request validation, root checks, search execution, and
   result assembly
 - CLI stdin JSON execution, stdout result JSON, stderr error messages, and
@@ -104,8 +105,8 @@ Planned focused regression commands:
 - `mvn test -Dtest=DocumentationSyncTest,MikuGrepCliTest` succeeded.
 - `mvn test -Dtest=MikuGrepCliTest` succeeded.
 - `mvn package` succeeded with 55 tests.
-- `mvn package` succeeded and created `target/miku-grep-0.8.1-dist.zip`.
-- `target/miku-grep-0.8.1-dist.zip` includes `docs/miku-grep-cli-spec.md`.
+- `mvn package` succeeded and created `target/miku-grep-0.8.4-dist.zip`.
+- `target/miku-grep-0.8.4-dist.zip` includes `docs/miku-grep-cli-spec.md`.
 - `java -jar target/miku-grep.jar --version` succeeded.
 - `java -jar target/miku-grep.jar --help` succeeded.
 

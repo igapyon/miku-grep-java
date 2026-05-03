@@ -15,6 +15,8 @@ import jp.igapyon.mikugrep.json.MikuGrepJson;
 import jp.igapyon.mikugrep.model.EffectiveRequest;
 import jp.igapyon.mikugrep.model.EncodingOptions;
 import jp.igapyon.mikugrep.model.EncodingRuleInput;
+import jp.igapyon.mikugrep.model.IgnoreMode;
+import jp.igapyon.mikugrep.model.IgnoreOptions;
 import jp.igapyon.mikugrep.model.OutputMode;
 import jp.igapyon.mikugrep.model.OutputOptions;
 import jp.igapyon.mikugrep.model.Query;
@@ -79,8 +81,9 @@ public final class Validation {
         JsonNode searchInput = objectOrEmpty(request.get("search"));
         JsonNode outputInput = objectOrEmpty(request.get("output"));
         JsonNode encodingInput = objectOrEmpty(request.get("encoding"));
-        if (searchInput == null || outputInput == null || encodingInput == null) {
-            return invalid("invalid_request", "search, output, and encoding must be objects when specified");
+        JsonNode ignoreInput = objectOrEmpty(request.get("ignore"));
+        if (searchInput == null || outputInput == null || encodingInput == null || ignoreInput == null) {
+            return invalid("invalid_request", "search, output, encoding, and ignore must be objects when specified");
         }
 
         SearchBuildResult searchResult = buildSearch(searchInput);
@@ -95,6 +98,10 @@ public final class Validation {
         if (!encodingResult.result.ok) {
             return encodingResult.result;
         }
+        IgnoreBuildResult ignoreResult = buildIgnore(ignoreInput);
+        if (!ignoreResult.result.ok) {
+            return ignoreResult.result;
+        }
 
         EffectiveRequest effectiveRequest = new EffectiveRequest();
         effectiveRequest.root = request.get("root").textValue();
@@ -104,6 +111,7 @@ public final class Validation {
         effectiveRequest.search = searchResult.search;
         effectiveRequest.output = outputResult.output;
         effectiveRequest.encoding = encodingResult.encoding;
+        effectiveRequest.ignore = ignoreResult.ignore;
         return ValidationResult.ok(effectiveRequest);
     }
 
@@ -111,10 +119,17 @@ public final class Validation {
         SearchOptions defaults = RequestContract.DEFAULTS.search();
         SearchOptions search = new SearchOptions();
 
-        String targetText = textValue(input.get("target"));
-        search.target = targetText == null ? defaults.target : searchTarget(targetText);
-        if (search.target == null) {
-            return SearchBuildResult.invalid("invalid_search_target", "search.target must be content, filename, or both");
+        List<SearchTarget> targets = input.has("targets") ? searchTargets(input.get("targets")) : defaults.targets;
+        if (targets == null || targets.isEmpty()) {
+            return SearchBuildResult.invalid("invalid_search_targets", "search.targets must be a non-empty array of filepath, directory, or content");
+        }
+        for (SearchTarget target : targets) {
+            if (target == null) {
+                return SearchBuildResult.invalid("invalid_search_target", "search.targets[] must be filepath, directory, or content");
+            }
+        }
+        if (hasDuplicateTargets(targets)) {
+            return SearchBuildResult.invalid("duplicate_search_target", "search.targets must not contain duplicate values");
         }
 
         JsonNode recursiveNode = input.get("recursive");
@@ -170,6 +185,7 @@ public final class Validation {
             return SearchBuildResult.invalid("invalid_request", "search.excludeDirNamePatterns must be an array of strings");
         }
 
+        search.targets = targets;
         search.maxDepth = Integer.valueOf(search.recursive.booleanValue() ? maxDepth.intValue() : 0);
         search.maxFileBytes = maxFileBytes;
         search.maxLineChars = Integer.valueOf(maxLineChars.intValue());
@@ -188,13 +204,29 @@ public final class Validation {
         String modeText = textValue(input.get("mode"));
         output.mode = modeText == null ? defaults.mode : outputMode(modeText);
         if (output.mode == null) {
-            return OutputBuildResult.invalid("invalid_output_mode", "output.mode must be detail or file-summary");
+            return OutputBuildResult.invalid("invalid_output_mode", "output.mode must be detail or summary");
+        }
+
+        boolean hasContextLines = input.has("contextLines");
+        boolean hasContextLinesBefore = input.has("contextLinesBefore");
+        boolean hasContextLinesAfter = input.has("contextLinesAfter");
+        if (output.mode == OutputMode.SUMMARY && (hasContextLines || hasContextLinesBefore || hasContextLinesAfter)) {
+            return OutputBuildResult.invalid("invalid_context_lines", "context lines are only supported in detail mode");
+        }
+        if (hasContextLines && (hasContextLinesBefore || hasContextLinesAfter)) {
+            return OutputBuildResult.invalid("invalid_context_lines", "output.contextLines cannot be combined with contextLinesBefore or contextLinesAfter");
         }
 
         Long maxMatches = integerOrDefault(input.get("maxMatches"), Long.valueOf(defaults.maxMatches.longValue()));
         Long maxMatchesPerFile = integerOrDefault(input.get("maxMatchesPerFile"), Long.valueOf(defaults.maxMatchesPerFile.longValue()));
         Long maxLineLength = integerOrDefault(input.get("maxLineLength"), Long.valueOf(defaults.maxLineLength.longValue()));
         Long maxSnippetsPerFile = integerOrDefault(input.get("maxSnippetsPerFile"), Long.valueOf(defaults.maxSnippetsPerFile.longValue()));
+        Long contextLinesBefore = hasContextLines
+                ? integerOrDefault(input.get("contextLines"), null)
+                : integerOrDefault(input.get("contextLinesBefore"), Long.valueOf(defaults.contextLinesBefore.longValue()));
+        Long contextLinesAfter = hasContextLines
+                ? integerOrDefault(input.get("contextLines"), null)
+                : integerOrDefault(input.get("contextLinesAfter"), Long.valueOf(defaults.contextLinesAfter.longValue()));
 
         ValidationResult limit = validateIntegerLimit(maxMatches, "output.maxMatches", 1, RequestContract.LIMITS.maxMatches, "max_matches_too_large");
         if (limit != null) {
@@ -212,11 +244,21 @@ public final class Validation {
         if (limit != null) {
             return OutputBuildResult.invalid(limit);
         }
+        limit = validateContextLineLimit(contextLinesBefore, hasContextLines ? "output.contextLines" : "output.contextLinesBefore");
+        if (limit != null) {
+            return OutputBuildResult.invalid(limit);
+        }
+        limit = validateContextLineLimit(contextLinesAfter, hasContextLines ? "output.contextLines" : "output.contextLinesAfter");
+        if (limit != null) {
+            return OutputBuildResult.invalid(limit);
+        }
 
         output.maxMatches = Integer.valueOf(maxMatches.intValue());
         output.maxMatchesPerFile = Integer.valueOf(maxMatchesPerFile.intValue());
         output.maxLineLength = Integer.valueOf(maxLineLength.intValue());
         output.maxSnippetsPerFile = Integer.valueOf(maxSnippetsPerFile.intValue());
+        output.contextLinesBefore = Integer.valueOf(contextLinesBefore.intValue());
+        output.contextLinesAfter = Integer.valueOf(contextLinesAfter.intValue());
         return OutputBuildResult.ok(output);
     }
 
@@ -277,6 +319,49 @@ public final class Validation {
         return EncodingBuildResult.ok(encoding);
     }
 
+    private static IgnoreBuildResult buildIgnore(JsonNode input) {
+        IgnoreOptions defaults = RequestContract.DEFAULTS.ignore();
+        IgnoreOptions ignore = new IgnoreOptions();
+
+        String modeText = textValue(input.get("mode"));
+        ignore.mode = modeText == null ? defaults.mode : ignoreMode(modeText);
+        if (ignore.mode == null) {
+            return IgnoreBuildResult.invalid("invalid_ignore_mode", "ignore.mode must be auto or none");
+        }
+        if (ignore.mode == IgnoreMode.NONE && (input.has("sources") || input.has("useGlobalGitignore"))) {
+            return IgnoreBuildResult.invalid("invalid_ignore_sources", "ignore.sources and ignore.useGlobalGitignore cannot be specified when ignore.mode is none");
+        }
+
+        List<String> sources = input.has("sources") ? stringArray(input.get("sources")) : defaults.sources;
+        if (sources == null) {
+            return IgnoreBuildResult.invalid("invalid_ignore_sources", "ignore.sources must be an array of strings");
+        }
+        for (String source : sources) {
+            if (!isIgnoreSource(source)) {
+                return IgnoreBuildResult.invalid("invalid_ignore_source", "ignore.sources[] must be .gitignore, .ignore, or .git/info/exclude");
+            }
+        }
+        if (hasDuplicateStrings(sources)) {
+            return IgnoreBuildResult.invalid("invalid_ignore_sources", "ignore.sources must not contain duplicate values");
+        }
+
+        JsonNode useGlobalGitignoreNode = input.get("useGlobalGitignore");
+        if (useGlobalGitignoreNode == null || useGlobalGitignoreNode.isNull()) {
+            ignore.useGlobalGitignore = defaults.useGlobalGitignore;
+        } else if (useGlobalGitignoreNode.isBoolean()) {
+            ignore.useGlobalGitignore = Boolean.valueOf(useGlobalGitignoreNode.booleanValue());
+        } else {
+            return IgnoreBuildResult.invalid("invalid_ignore_global", "ignore.useGlobalGitignore must be false");
+        }
+        if (ignore.useGlobalGitignore.booleanValue()) {
+            return IgnoreBuildResult.invalid("invalid_ignore_global", "ignore.useGlobalGitignore must be false");
+        }
+
+        ignore.sources = ignore.mode == IgnoreMode.NONE ? Collections.<String>emptyList() : sources;
+        ignore.loadedSources = new ArrayList<jp.igapyon.mikugrep.model.IgnoreLoadedSource>();
+        return IgnoreBuildResult.ok(ignore);
+    }
+
     private static ValidationResult validateRegex(String queryText) {
         if (queryText.length() > RequestContract.LIMITS.regexPatternLength) {
             return invalid("regex_too_large", "query.text regex pattern is too large");
@@ -301,6 +386,14 @@ public final class Validation {
             return invalid(tooLargeCode, fieldPath + " is too large");
         }
         return null;
+    }
+
+    private static ValidationResult validateContextLineLimit(Long value, String fieldPath) {
+        ValidationResult result = validateIntegerLimit(value, fieldPath, 0, RequestContract.LIMITS.contextLines, "context_lines_too_large");
+        if (result != null && "invalid_request".equals(result.code)) {
+            return invalid("invalid_context_lines", fieldPath + " must be a non-negative integer");
+        }
+        return result;
     }
 
     private static JsonNode objectOrEmpty(JsonNode node) {
@@ -378,15 +471,29 @@ public final class Validation {
         return null;
     }
 
+    private static List<SearchTarget> searchTargets(JsonNode node) {
+        if (!node.isArray()) {
+            return null;
+        }
+        List<SearchTarget> targets = new ArrayList<SearchTarget>();
+        for (JsonNode item : node) {
+            if (!item.isTextual()) {
+                return null;
+            }
+            targets.add(searchTarget(item.textValue()));
+        }
+        return targets;
+    }
+
     private static SearchTarget searchTarget(String value) {
         if ("content".equals(value)) {
             return SearchTarget.CONTENT;
         }
-        if ("filename".equals(value)) {
-            return SearchTarget.FILENAME;
+        if ("filepath".equals(value)) {
+            return SearchTarget.FILEPATH;
         }
-        if ("both".equals(value)) {
-            return SearchTarget.BOTH;
+        if ("directory".equals(value)) {
+            return SearchTarget.DIRECTORY;
         }
         return null;
     }
@@ -395,10 +502,32 @@ public final class Validation {
         if ("detail".equals(value)) {
             return OutputMode.DETAIL;
         }
-        if ("file-summary".equals(value)) {
-            return OutputMode.FILE_SUMMARY;
+        if ("summary".equals(value)) {
+            return OutputMode.SUMMARY;
         }
         return null;
+    }
+
+    private static IgnoreMode ignoreMode(String value) {
+        if ("auto".equals(value)) {
+            return IgnoreMode.AUTO;
+        }
+        if ("none".equals(value)) {
+            return IgnoreMode.NONE;
+        }
+        return null;
+    }
+
+    private static boolean isIgnoreSource(String value) {
+        return ".gitignore".equals(value) || ".ignore".equals(value) || ".git/info/exclude".equals(value);
+    }
+
+    private static boolean hasDuplicateTargets(List<SearchTarget> targets) {
+        return new java.util.HashSet<SearchTarget>(targets).size() != targets.size();
+    }
+
+    private static boolean hasDuplicateStrings(List<String> values) {
+        return new java.util.HashSet<String>(values).size() != values.size();
     }
 
     private static SupportedEncoding supportedEncoding(String value) {
@@ -474,6 +603,24 @@ public final class Validation {
 
         static EncodingBuildResult invalid(String code, String message) {
             return new EncodingBuildResult(ValidationResult.invalid(code, message), null);
+        }
+    }
+
+    private static final class IgnoreBuildResult {
+        final ValidationResult result;
+        final IgnoreOptions ignore;
+
+        private IgnoreBuildResult(ValidationResult result, IgnoreOptions ignore) {
+            this.result = result;
+            this.ignore = ignore;
+        }
+
+        static IgnoreBuildResult ok(IgnoreOptions ignore) {
+            return new IgnoreBuildResult(ValidationResult.ok(null), ignore);
+        }
+
+        static IgnoreBuildResult invalid(String code, String message) {
+            return new IgnoreBuildResult(ValidationResult.invalid(code, message), null);
         }
     }
 }

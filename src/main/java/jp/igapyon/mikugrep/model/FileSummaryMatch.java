@@ -10,7 +10,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
         "type",
         "file",
         "matchTypes",
-        "filenameMatched",
+        "filepathMatched",
         "contentMatched",
         "lines",
         "matchCount",
@@ -21,7 +21,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 public class FileSummaryMatch extends MikuGrepMatch {
     public String file;
     public List<MatchType> matchTypes;
-    public Boolean filenameMatched;
+    public Boolean filepathMatched;
     public Boolean contentMatched;
     public List<Integer> lines;
     public Integer matchCount;

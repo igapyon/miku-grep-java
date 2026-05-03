@@ -5,8 +5,8 @@ import com.fasterxml.jackson.annotation.JsonValue;
 
 public enum SearchTarget implements JsonValueEnum {
     CONTENT("content"),
-    FILENAME("filename"),
-    BOTH("both");
+    FILEPATH("filepath"),
+    DIRECTORY("directory");
 
     private final String jsonValue;
 

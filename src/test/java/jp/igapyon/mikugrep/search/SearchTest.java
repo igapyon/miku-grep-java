@@ -15,9 +15,11 @@ import org.junit.jupiter.api.io.TempDir;
 
 import jp.igapyon.mikugrep.model.ContentMatch;
 import jp.igapyon.mikugrep.model.Diagnostic;
+import jp.igapyon.mikugrep.model.DirectoryMatch;
+import jp.igapyon.mikugrep.model.DirectorySummaryMatch;
 import jp.igapyon.mikugrep.model.EffectiveRequest;
 import jp.igapyon.mikugrep.model.FileSummaryMatch;
-import jp.igapyon.mikugrep.model.FilenameMatch;
+import jp.igapyon.mikugrep.model.FilepathMatch;
 import jp.igapyon.mikugrep.model.MatchType;
 import jp.igapyon.mikugrep.model.MikuGrepMatch;
 import jp.igapyon.mikugrep.validation.Validation;
@@ -32,7 +34,7 @@ class SearchTest {
         write("src/RepositoryMap.java", "class RepositoryMap {\n  RepositoryMap field;\n}\n");
         write("node_modules/skip.txt", "RepositoryMap\n");
 
-        SearchResult result = run("{\"target\":\"content\",\"recursive\":true,\"maxDepth\":5}", null, "RepositoryMap");
+        SearchResult result = run("{\"targets\":[\"content\"],\"recursive\":true,\"maxDepth\":5}", null, "RepositoryMap");
 
         assertEquals(2, result.summary.filesVisited);
         assertEquals(2, result.summary.filesMatched);
@@ -64,16 +66,16 @@ class SearchTest {
         write("skip/skip.txt", "RepositoryMap\n");
         write("a/b/two.txt", "RepositoryMap\n");
 
-        SearchResult excluded = run("{\"target\":\"content\",\"excludeDirNamePatterns\":[\"skip\"]}", null, "RepositoryMap");
+        SearchResult excluded = run("{\"targets\":[\"content\"],\"excludeDirNamePatterns\":[\"skip\"]}", null, "RepositoryMap");
         assertEquals("a/b/two.txt", ((FileSummaryMatch) excluded.matches.get(0)).file);
         assertEquals("keep/keep.txt", ((FileSummaryMatch) excluded.matches.get(1)).file);
         assertEquals("root.txt", ((FileSummaryMatch) excluded.matches.get(2)).file);
 
-        SearchResult nonRecursive = run("{\"target\":\"content\",\"recursive\":false}", null, "RepositoryMap");
+        SearchResult nonRecursive = run("{\"targets\":[\"content\"],\"recursive\":false}", null, "RepositoryMap");
         assertEquals(1, nonRecursive.matches.size());
         assertEquals("root.txt", ((FileSummaryMatch) nonRecursive.matches.get(0)).file);
 
-        SearchResult depthOne = run("{\"target\":\"content\",\"recursive\":true,\"maxDepth\":1}", null, "RepositoryMap");
+        SearchResult depthOne = run("{\"targets\":[\"content\"],\"recursive\":true,\"maxDepth\":1}", null, "RepositoryMap");
         assertEquals(3, depthOne.matches.size());
         assertEquals("keep/keep.txt", ((FileSummaryMatch) depthOne.matches.get(0)).file);
         assertEquals("root.txt", ((FileSummaryMatch) depthOne.matches.get(1)).file);
@@ -84,7 +86,7 @@ class SearchTest {
     void canIncludeDefaultExcludedDirectoriesWhenExcludeDirectoryPatternsAreEmpty() throws Exception {
         write("node_modules/pkg/index.txt", "RepositoryMap\n");
 
-        SearchResult result = run("{\"target\":\"content\",\"excludeDirNamePatterns\":[]}", "{\"mode\":\"detail\"}", "RepositoryMap");
+        SearchResult result = run("{\"targets\":[\"content\"],\"excludeDirNamePatterns\":[]}", "{\"mode\":\"detail\"}", "RepositoryMap");
 
         assertEquals(1, result.matches.size());
         assertContent(result.matches.get(0), "node_modules/pkg/index.txt", 1, 1, "RepositoryMap");
@@ -94,62 +96,115 @@ class SearchTest {
     void omittedExcludeDirectoryPatternsKeepDefaultNodeModulesExclusion() throws Exception {
         write("node_modules/pkg/index.txt", "RepositoryMap\n");
 
-        SearchResult result = run("{\"target\":\"content\"}", "{\"mode\":\"detail\"}", "RepositoryMap");
+        SearchResult result = run("{\"targets\":[\"content\"]}", "{\"mode\":\"detail\"}", "RepositoryMap");
 
         assertEquals(0, result.matches.size());
     }
 
     @Test
-    void filenameAndBothSearchFollowUpstreamOrderingAndAggregation() throws Exception {
+    void filepathAndContentSearchFollowUpstreamOrderingAndAggregation() throws Exception {
         write("b-RepositoryMap.txt", "RepositoryMap\n");
         write("a-RepositoryMap.txt", "x\nRepositoryMap\n");
 
-        SearchResult detail = run("{\"target\":\"both\"}", "{\"mode\":\"detail\"}", "RepositoryMap");
-        assertTrue(detail.matches.get(0) instanceof FilenameMatch);
-        assertEquals("a-RepositoryMap.txt", ((FilenameMatch) detail.matches.get(0)).file);
+        SearchResult detail = run("{\"targets\":[\"filepath\",\"content\"]}", "{\"mode\":\"detail\"}", "RepositoryMap");
+        assertTrue(detail.matches.get(0) instanceof FilepathMatch);
+        assertEquals("a-RepositoryMap.txt", ((FilepathMatch) detail.matches.get(0)).file);
         assertContent(detail.matches.get(1), "a-RepositoryMap.txt", 2, 1, "RepositoryMap");
-        assertTrue(detail.matches.get(2) instanceof FilenameMatch);
-        assertEquals("b-RepositoryMap.txt", ((FilenameMatch) detail.matches.get(2)).file);
+        assertTrue(detail.matches.get(2) instanceof FilepathMatch);
+        assertEquals("b-RepositoryMap.txt", ((FilepathMatch) detail.matches.get(2)).file);
         assertContent(detail.matches.get(3), "b-RepositoryMap.txt", 1, 1, "RepositoryMap");
 
-        SearchResult summary = run("{\"target\":\"both\"}", "{\"mode\":\"file-summary\",\"maxSnippetsPerFile\":1}", "RepositoryMap");
+        SearchResult summary = run("{\"targets\":[\"filepath\",\"content\"]}", "{\"mode\":\"summary\",\"maxSnippetsPerFile\":1}", "RepositoryMap");
         FileSummaryMatch first = (FileSummaryMatch) summary.matches.get(0);
         assertEquals("a-RepositoryMap.txt", first.file);
-        assertEquals(MatchType.FILENAME, first.matchTypes.get(0));
+        assertEquals(MatchType.FILEPATH, first.matchTypes.get(0));
         assertEquals(MatchType.CONTENT, first.matchTypes.get(1));
-        assertTrue(first.filenameMatched.booleanValue());
+        assertTrue(first.filepathMatched.booleanValue());
         assertTrue(first.contentMatched.booleanValue());
     }
 
     @Test
-    void filenameSearchMatchesRelativePathsButIncludePatternsUseBasename() throws Exception {
+    void filepathSearchMatchesRelativePathsButIncludePatternsUseBasename() throws Exception {
         write("src/App.java", "no content hit\n");
         write("App.java", "no content hit\n");
 
-        SearchResult pathMatch = run("{\"target\":\"filename\",\"includeFileNamePatterns\":[\"App.java\"]}", "{\"mode\":\"detail\"}", "src/App.java");
+        SearchResult pathMatch = run("{\"targets\":[\"filepath\"],\"includeFileNamePatterns\":[\"App.java\"]}", "{\"mode\":\"detail\"}", "src/App.java");
         assertEquals(1, pathMatch.matches.size());
-        assertEquals("src/App.java", ((FilenameMatch) pathMatch.matches.get(0)).file);
+        assertEquals("src/App.java", ((FilepathMatch) pathMatch.matches.get(0)).file);
 
-        SearchResult includeDoesNotMatchPath = run("{\"target\":\"filename\",\"includeFileNamePatterns\":[\"src/App.java\"]}", "{\"mode\":\"detail\"}", "App.java");
+        SearchResult includeDoesNotMatchPath = run("{\"targets\":[\"filepath\"],\"includeFileNamePatterns\":[\"src/App.java\"]}", "{\"mode\":\"detail\"}", "App.java");
         assertEquals(0, includeDoesNotMatchPath.matches.size());
         assertEquals(0, includeDoesNotMatchPath.summary.filesScanned);
     }
 
     @Test
-    void canIncludeDefaultExcludedZipFilesWhenExcludeFilePatternsAreEmpty() throws Exception {
-        write("artifact.zip", "not read for filename search\n");
+    void directoryTargetReturnsDetailAndSummaryMatches() throws Exception {
+        Files.createDirectories(tempDir.resolve("docs/api"));
+        write("docs/readme.txt", "not a directory hit\n");
 
-        SearchResult result = run("{\"target\":\"filename\",\"includeFileNamePatterns\":[\"*.zip\"],\"excludeFileNamePatterns\":[]}", "{\"mode\":\"detail\"}", "\\.zip$", "regex");
+        SearchResult detail = run("{\"targets\":[\"directory\"]}", "{\"mode\":\"detail\"}", "docs");
+        assertEquals(2, detail.matches.size());
+        assertEquals("docs", ((DirectoryMatch) detail.matches.get(0)).path);
+        assertEquals("docs/api", ((DirectoryMatch) detail.matches.get(1)).path);
+        assertEquals(2, detail.summary.directoriesMatched);
+
+        SearchResult summary = run("{\"targets\":[\"directory\"]}", null, "docs");
+        assertEquals(2, summary.matches.size());
+        DirectorySummaryMatch first = (DirectorySummaryMatch) summary.matches.get(0);
+        assertEquals("docs", first.path);
+        assertEquals(MatchType.DIRECTORY, first.matchTypes.get(0));
+        assertTrue(first.directoryMatched.booleanValue());
+    }
+
+    @Test
+    void detailContentHitsCanIncludeContextLines() throws Exception {
+        write("App.java", "line 1\nline 2\nclass RepositoryMap {\nline 4\nline 5\n");
+
+        SearchResult result = run("{\"targets\":[\"content\"]}", "{\"mode\":\"detail\",\"contextLinesBefore\":2,\"contextLinesAfter\":1}", "RepositoryMap");
+
+        ContentMatch match = (ContentMatch) result.matches.get(0);
+        assertEquals(2, match.contextBefore.size());
+        assertEquals(Integer.valueOf(1), match.contextBefore.get(0).line);
+        assertEquals("line 1", match.contextBefore.get(0).text);
+        assertEquals(1, match.contextAfter.size());
+        assertEquals(Integer.valueOf(4), match.contextAfter.get(0).line);
+    }
+
+    @Test
+    void respectsIgnoreFilesByDefaultAndCanDisableThem() throws Exception {
+        write(".gitignore", "generated/\n*.tmp\n");
+        write("keep.txt", "RepositoryMap\n");
+        write("skip.tmp", "RepositoryMap\n");
+        write("generated/skip.txt", "RepositoryMap\n");
+
+        SearchResult auto = run("{\"targets\":[\"content\"]}", null, "RepositoryMap");
+        assertEquals(1, auto.matches.size());
+        assertEquals("keep.txt", ((FileSummaryMatch) auto.matches.get(0)).file);
+        assertEquals(1, auto.summary.filesIgnored);
+        assertEquals(1, auto.summary.directoriesIgnored);
+        assertEquals(0, auto.summary.diagnostics);
+
+        SearchRun none = runWithDiagnostics("{\"targets\":[\"content\"]}", null, "RepositoryMap", "literal", "\"ignore\":{\"mode\":\"none\"}");
+        assertEquals(3, none.result.matches.size());
+        assertEquals(0, none.result.summary.filesIgnored);
+        assertEquals(0, none.result.summary.directoriesIgnored);
+    }
+
+    @Test
+    void canIncludeDefaultExcludedZipFilesWhenExcludeFilePatternsAreEmpty() throws Exception {
+        write("artifact.zip", "not read for filepath search\n");
+
+        SearchResult result = run("{\"targets\":[\"filepath\"],\"includeFileNamePatterns\":[\"*.zip\"],\"excludeFileNamePatterns\":[]}", "{\"mode\":\"detail\"}", "\\.zip$", "regex");
 
         assertEquals(1, result.matches.size());
-        assertEquals("artifact.zip", ((FilenameMatch) result.matches.get(0)).file);
+        assertEquals("artifact.zip", ((FilepathMatch) result.matches.get(0)).file);
     }
 
     @Test
     void omittedExcludeFilePatternsKeepDefaultZipExclusion() throws Exception {
-        write("artifact.zip", "not read for filename search\n");
+        write("artifact.zip", "not read for filepath search\n");
 
-        SearchResult result = run("{\"target\":\"filename\",\"includeFileNamePatterns\":[\"*.zip\"]}", "{\"mode\":\"detail\"}", "\\.zip$", "regex");
+        SearchResult result = run("{\"targets\":[\"filepath\"],\"includeFileNamePatterns\":[\"*.zip\"]}", "{\"mode\":\"detail\"}", "\\.zip$", "regex");
 
         assertEquals(0, result.matches.size());
     }
@@ -181,8 +236,8 @@ class SearchTest {
         assertEquals("max_file_bytes_exceeded", findDiagnostic(sizeLimited.diagnostics, "big.txt").code);
 
         write("bad.txt", new byte[] { (byte) 0xff, (byte) 0xfe, (byte) 0xfd });
-        SearchRun bad = runWithDiagnostics("{\"target\":\"both\"}", "{\"mode\":\"detail\"}", "bad");
-        assertTrue(bad.result.matches.get(0) instanceof FilenameMatch);
+        SearchRun bad = runWithDiagnostics("{\"targets\":[\"filepath\",\"content\"]}", "{\"mode\":\"detail\"}", "bad");
+        assertTrue(bad.result.matches.get(0) instanceof FilepathMatch);
         assertEquals("decode_error", findDiagnostic(bad.diagnostics, "bad.txt").code);
     }
 
@@ -199,12 +254,17 @@ class SearchTest {
     }
 
     private SearchRun runWithDiagnostics(String searchJson, String outputJson, String queryText, String queryType) throws Exception {
+        return runWithDiagnostics(searchJson, outputJson, queryText, queryType, null);
+    }
+
+    private SearchRun runWithDiagnostics(String searchJson, String outputJson, String queryText, String queryType, String extraJson) throws Exception {
         String json = "{"
                 + "\"version\":1,"
                 + "\"root\":\"" + tempDir.toString().replace("\\", "\\\\") + "\","
                 + "\"query\":{\"type\":\"" + queryType + "\",\"text\":\"" + queryText.replace("\\", "\\\\").replace("\"", "\\\"") + "\"}"
                 + (searchJson == null ? "" : ",\"search\":" + searchJson)
                 + (outputJson == null ? "" : ",\"output\":" + outputJson)
+                + (extraJson == null ? "" : "," + extraJson)
                 + "}";
         EffectiveRequest request = Validation.validateAndNormalize(json).effectiveRequest;
         List<Diagnostic> diagnostics = new ArrayList<Diagnostic>();
