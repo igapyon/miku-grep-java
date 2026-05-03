@@ -123,7 +123,8 @@ public final class Search {
                 state.summary.directoriesVisited++;
                 if (hasTarget(state, SearchTarget.DIRECTORY)) {
                     state.summary.directoriesScanned++;
-                    for (Hit hit : findMatches(relativePath, state.request.query)) {
+                    Hit hit = chooseRepresentativeMatch(findMatches(relativePath, state.request.query));
+                    if (hit != null) {
                         DirectoryMatch match = new DirectoryMatch();
                         match.path = relativePath;
                         match.matchedText = hit.text;
@@ -171,7 +172,8 @@ public final class Search {
         if (hasTarget(state, SearchTarget.FILEPATH)) {
             countedScanned = true;
             state.summary.filesScanned++;
-            for (Hit hit : findMatches(relativePath, state.request.query)) {
+            Hit hit = chooseRepresentativeMatch(findMatches(relativePath, state.request.query));
+            if (hit != null) {
                 FilepathMatch match = new FilepathMatch();
                 match.file = relativePath;
                 match.matchedText = hit.text;
@@ -483,6 +485,15 @@ public final class Search {
             }
         }
         return hits;
+    }
+
+    private static Hit chooseRepresentativeMatch(List<Hit> matches) {
+        for (Hit match : matches) {
+            if (match.text.length() > 0) {
+                return match;
+            }
+        }
+        return matches.isEmpty() ? null : matches.get(0);
     }
 
     private static Snippet makeSnippet(String line, int matchIndex, int matchLength, int maxLineLength) {

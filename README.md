@@ -89,5 +89,7 @@ unless explicitly recorded in the follow-up log.
 - Summary output mode is `output.mode: "summary"`.
 - Detail content matches can include `contextBefore` and `contextAfter` when
   context line options are requested.
+- Detail filepath / directory matches return at most one representative hit per
+  matched path.
 - Ignore file handling is enabled by default for `.gitignore`, `.ignore`, and
   `.git/info/exclude`; use `ignore.mode: "none"` to disable it.
