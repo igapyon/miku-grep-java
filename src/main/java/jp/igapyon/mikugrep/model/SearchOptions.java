@@ -7,7 +7,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
-        "target",
+        "targets",
         "recursive",
         "maxDepth",
         "maxFileBytes",
@@ -19,7 +19,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
         "excludeDirNamePatterns"
 })
 public class SearchOptions {
-    public SearchTarget target;
+    public List<SearchTarget> targets;
     public Boolean recursive;
     public Integer maxDepth;
     public Long maxFileBytes;

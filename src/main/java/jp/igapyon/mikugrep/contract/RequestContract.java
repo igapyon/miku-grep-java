@@ -5,6 +5,8 @@ import java.util.Collections;
 import java.util.List;
 
 import jp.igapyon.mikugrep.model.EncodingOptions;
+import jp.igapyon.mikugrep.model.IgnoreMode;
+import jp.igapyon.mikugrep.model.IgnoreOptions;
 import jp.igapyon.mikugrep.model.OutputMode;
 import jp.igapyon.mikugrep.model.OutputOptions;
 import jp.igapyon.mikugrep.model.SearchOptions;
@@ -57,6 +59,7 @@ public final class RequestContract {
         public final int maxMatchesPerFile = 1000;
         public final int maxLineLength = 4000;
         public final int maxSnippetsPerFile = 100;
+        public final int contextLines = 20;
 
         private Limits() {
         }
@@ -68,7 +71,7 @@ public final class RequestContract {
 
         public SearchOptions search() {
             SearchOptions search = new SearchOptions();
-            search.target = SearchTarget.CONTENT;
+            search.targets = Collections.singletonList(SearchTarget.CONTENT);
             search.recursive = Boolean.TRUE;
             search.maxDepth = 20;
             search.maxFileBytes = 10485760L;
@@ -83,11 +86,13 @@ public final class RequestContract {
 
         public OutputOptions output() {
             OutputOptions output = new OutputOptions();
-            output.mode = OutputMode.FILE_SUMMARY;
+            output.mode = OutputMode.SUMMARY;
             output.maxMatches = 200;
             output.maxMatchesPerFile = 20;
             output.maxLineLength = 240;
             output.maxSnippetsPerFile = 3;
+            output.contextLinesBefore = 0;
+            output.contextLinesAfter = 0;
             return output;
         }
 
@@ -97,6 +102,15 @@ public final class RequestContract {
             encoding.rules = Collections.emptyList();
             encoding.onDecodeError = "skip";
             return encoding;
+        }
+
+        public IgnoreOptions ignore() {
+            IgnoreOptions ignore = new IgnoreOptions();
+            ignore.mode = IgnoreMode.AUTO;
+            ignore.sources = Collections.unmodifiableList(Arrays.asList(".gitignore", ".ignore", ".git/info/exclude"));
+            ignore.useGlobalGitignore = Boolean.FALSE;
+            ignore.loadedSources = Collections.emptyList();
+            return ignore;
         }
     }
 
@@ -108,7 +122,7 @@ public final class RequestContract {
                         .field("type")
                         .field("text"))
                 .object("search", new RequestFieldShape()
-                        .field("target")
+                        .field("targets")
                         .field("recursive")
                         .field("maxDepth")
                         .field("maxFileBytes")
@@ -123,10 +137,17 @@ public final class RequestContract {
                         .field("maxMatches")
                         .field("maxMatchesPerFile")
                         .field("maxLineLength")
-                        .field("maxSnippetsPerFile"))
+                        .field("maxSnippetsPerFile")
+                        .field("contextLines")
+                        .field("contextLinesBefore")
+                        .field("contextLinesAfter"))
                 .object("encoding", new RequestFieldShape()
                         .field("default")
                         .field("rules")
-                        .field("onDecodeError"));
+                        .field("onDecodeError"))
+                .object("ignore", new RequestFieldShape()
+                        .field("mode")
+                        .field("sources")
+                        .field("useGlobalGitignore"));
     }
 }

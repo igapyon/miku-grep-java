@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 
 import jp.igapyon.mikugrep.contract.RequestContract;
 import jp.igapyon.mikugrep.model.EncodingRuleInput;
+import jp.igapyon.mikugrep.model.IgnoreMode;
 import jp.igapyon.mikugrep.model.OutputMode;
 import jp.igapyon.mikugrep.model.QueryType;
 import jp.igapyon.mikugrep.model.SearchTarget;
@@ -28,7 +29,7 @@ class ValidationTest {
         assertEquals(".", result.effectiveRequest.root);
         assertEquals(QueryType.LITERAL, result.effectiveRequest.query.type);
         assertEquals("RepositoryMap", result.effectiveRequest.query.text);
-        assertEquals(SearchTarget.CONTENT, result.effectiveRequest.search.target);
+        assertEquals(Arrays.asList(SearchTarget.CONTENT), result.effectiveRequest.search.targets);
         assertEquals(Boolean.TRUE, result.effectiveRequest.search.recursive);
         assertEquals(Integer.valueOf(20), result.effectiveRequest.search.maxDepth);
         assertEquals(Long.valueOf(10485760L), result.effectiveRequest.search.maxFileBytes);
@@ -38,14 +39,20 @@ class ValidationTest {
         assertEquals(0, result.effectiveRequest.search.includeFileNamePatterns.size());
         assertTrue(result.effectiveRequest.search.excludeFileNamePatterns.containsAll(RequestContract.DEFAULT_EXCLUDE_FILES));
         assertTrue(result.effectiveRequest.search.excludeDirNamePatterns.containsAll(RequestContract.DEFAULT_EXCLUDE_DIRS));
-        assertEquals(OutputMode.FILE_SUMMARY, result.effectiveRequest.output.mode);
+        assertEquals(OutputMode.SUMMARY, result.effectiveRequest.output.mode);
         assertEquals(Integer.valueOf(200), result.effectiveRequest.output.maxMatches);
         assertEquals(Integer.valueOf(20), result.effectiveRequest.output.maxMatchesPerFile);
         assertEquals(Integer.valueOf(240), result.effectiveRequest.output.maxLineLength);
         assertEquals(Integer.valueOf(3), result.effectiveRequest.output.maxSnippetsPerFile);
+        assertEquals(Integer.valueOf(0), result.effectiveRequest.output.contextLinesBefore);
+        assertEquals(Integer.valueOf(0), result.effectiveRequest.output.contextLinesAfter);
         assertEquals(SupportedEncoding.UTF_8, result.effectiveRequest.encoding.defaultEncoding);
         assertEquals(0, result.effectiveRequest.encoding.rules.size());
         assertEquals("skip", result.effectiveRequest.encoding.onDecodeError);
+        assertEquals(IgnoreMode.AUTO, result.effectiveRequest.ignore.mode);
+        assertEquals(Arrays.asList(".gitignore", ".ignore", ".git/info/exclude"), result.effectiveRequest.ignore.sources);
+        assertEquals(Boolean.FALSE, result.effectiveRequest.ignore.useGlobalGitignore);
+        assertEquals(0, result.effectiveRequest.ignore.loadedSources.size());
     }
 
     @Test
@@ -99,6 +106,7 @@ class ValidationTest {
         assertInvalid(Validation.validateAndNormalize(baseRequestWith("\"search\":[]")), "invalid_request");
         assertInvalid(Validation.validateAndNormalize(baseRequestWith("\"output\":[]")), "invalid_request");
         assertInvalid(Validation.validateAndNormalize(baseRequestWith("\"encoding\":[]")), "invalid_request");
+        assertInvalid(Validation.validateAndNormalize(baseRequestWith("\"ignore\":[]")), "invalid_request");
         assertInvalid(Validation.validateAndNormalize(baseRequestWith("\"search\":{\"includeFileNamePatterns\":[\"*.txt\",1]}")), "invalid_request");
         assertInvalid(Validation.validateAndNormalize(baseRequestWith("\"search\":{\"excludeFileNamePatterns\":null}")), "invalid_request");
         assertInvalid(Validation.validateAndNormalize(baseRequestWith("\"search\":{\"excludeDirNamePatterns\":null}")), "invalid_request");
@@ -120,6 +128,9 @@ class ValidationTest {
         assertInvalid(Validation.validateAndNormalize(baseRequestWith("\"search\":{\"maxFileBytes\":104857601}")), "max_file_bytes_too_large");
         assertInvalid(Validation.validateAndNormalize(baseRequestWith("\"output\":{\"maxLineLength\":4001}")), "max_line_length_too_large");
         assertInvalid(Validation.validateAndNormalize(baseRequestWith("\"output\":{\"maxSnippetsPerFile\":101}")), "max_snippets_per_file_too_large");
+        assertInvalid(Validation.validateAndNormalize(baseRequestWith("\"output\":{\"mode\":\"detail\",\"contextLines\":21}")), "context_lines_too_large");
+        assertInvalid(Validation.validateAndNormalize(baseRequestWith("\"output\":{\"mode\":\"summary\",\"contextLines\":1}")), "invalid_context_lines");
+        assertInvalid(Validation.validateAndNormalize(baseRequestWith("\"output\":{\"mode\":\"detail\",\"contextLines\":1,\"contextLinesBefore\":1}")), "invalid_context_lines");
     }
 
     @Test
@@ -127,10 +138,17 @@ class ValidationTest {
         assertInvalid(Validation.validateAndNormalize(baseRequestWith("\"version\":2")), "invalid_version");
         assertInvalid(Validation.validateAndNormalize(baseRequestWith("\"query\":{\"type\":\"glob\",\"text\":\"RepositoryMap\"}")), "invalid_query_type");
         assertInvalid(Validation.validateAndNormalize(baseRequestWith("\"query\":{\"type\":\"literal\",\"text\":\"\"}")), "empty_query");
-        assertInvalid(Validation.validateAndNormalize(baseRequestWith("\"search\":{\"target\":\"path\"}")), "invalid_search_target");
+        assertInvalid(Validation.validateAndNormalize(baseRequestWith("\"search\":{\"targets\":[]}")), "invalid_search_targets");
+        assertInvalid(Validation.validateAndNormalize(baseRequestWith("\"search\":{\"targets\":[\"path\"]}")), "invalid_search_target");
+        assertInvalid(Validation.validateAndNormalize(baseRequestWith("\"search\":{\"targets\":[\"content\",\"content\"]}")), "duplicate_search_target");
         assertInvalid(Validation.validateAndNormalize(baseRequestWith("\"output\":{\"mode\":\"raw\"}")), "invalid_output_mode");
         assertInvalid(Validation.validateAndNormalize(baseRequestWith("\"encoding\":{\"default\":\"euc-jp\"}")), "invalid_encoding");
         assertInvalid(Validation.validateAndNormalize(baseRequestWith("\"encoding\":{\"onDecodeError\":\"replace\"}")), "invalid_request");
+        assertInvalid(Validation.validateAndNormalize(baseRequestWith("\"ignore\":{\"mode\":\"bad\"}")), "invalid_ignore_mode");
+        assertInvalid(Validation.validateAndNormalize(baseRequestWith("\"ignore\":{\"sources\":[\"bad\"]}")), "invalid_ignore_source");
+        assertInvalid(Validation.validateAndNormalize(baseRequestWith("\"ignore\":{\"sources\":[\".gitignore\",\".gitignore\"]}")), "invalid_ignore_sources");
+        assertInvalid(Validation.validateAndNormalize(baseRequestWith("\"ignore\":{\"useGlobalGitignore\":true}")), "invalid_ignore_global");
+        assertInvalid(Validation.validateAndNormalize(baseRequestWith("\"ignore\":{\"mode\":\"none\",\"sources\":[\".gitignore\"]}")), "invalid_ignore_sources");
     }
 
     @Test

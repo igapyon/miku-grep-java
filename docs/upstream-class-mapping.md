@@ -41,6 +41,8 @@ java classes:
   jp.igapyon.mikugrep.model.ContentMatch
   jp.igapyon.mikugrep.model.FileSummaryMatch
   jp.igapyon.mikugrep.model.FileSummarySnippet
+  jp.igapyon.mikugrep.model.DirectorySummaryMatch
+  jp.igapyon.mikugrep.model.ContextLine
   jp.igapyon.mikugrep.model.EncodingRuleInput
   jp.igapyon.mikugrep.model.EncodingRuleResult
   jp.igapyon.mikugrep.json.MikuGrepJson
@@ -97,6 +99,9 @@ notes:
 ```text
 upstream file:
   vendor/miku-grep/src/search.ts
+  vendor/miku-grep/src/search-results.ts
+  vendor/miku-grep/src/match-text.ts
+  vendor/miku-grep/src/encoding.ts
 
 java classes:
   jp.igapyon.mikugrep.search.Search
@@ -104,9 +109,53 @@ java classes:
   jp.igapyon.mikugrep.search.SearchState
 
 notes:
-  - Covers traversal, filename search, content search, diagnostics, summary
-    counts, match ordering, snippet trimming, and encoding selection.
+  - Covers traversal, filepath search, directory search, content search,
+    diagnostics, summary counts, match ordering, snippet trimming, context
+    lines, ignore files, and encoding selection.
   - Runtime differences in Shift_JIS decoding are acceptable when documented.
+```
+
+```text
+upstream file:
+  vendor/miku-grep/src/context-lines.ts
+
+java classes:
+  jp.igapyon.mikugrep.search.Search
+  jp.igapyon.mikugrep.model.ContextLine
+
+notes:
+  - Covers detail-mode context lines around content hits.
+  - Java implementation is covered by `Search` and `ContextLine`.
+```
+
+```text
+upstream file:
+  vendor/miku-grep/src/ignore-files.ts
+
+java classes:
+  jp.igapyon.mikugrep.search.Search
+  jp.igapyon.mikugrep.model.IgnoreMode
+  jp.igapyon.mikugrep.model.IgnoreOptions
+  jp.igapyon.mikugrep.model.IgnoreLoadedSource
+
+notes:
+  - Covers `.gitignore`, `.ignore`, and `.git/info/exclude` loading.
+  - Java implementation covers the upstream MVP ignore pattern subset,
+    ignored counters, loaded source reporting, and ignore diagnostics.
+```
+
+```text
+upstream file:
+  vendor/miku-grep/src/string-order.ts
+
+java classes:
+  jp.igapyon.mikugrep.search.Search
+  jp.igapyon.mikugrep.result.ResultBuilder
+
+notes:
+  - Covers deterministic Node-side ordering aligned with Java string ordering.
+  - Java should continue to use deterministic lexicographic ordering for
+    matches and diagnostics.
 ```
 
 ```text

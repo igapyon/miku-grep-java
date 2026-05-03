@@ -1,18 +1,19 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import iconv from "iconv-lite";
-import { globMatch, matchesAny, pathGlobMatch } from "./glob.js";
+import { makeContext } from "./context-lines.js";
+import { decode, selectEncoding } from "./encoding.js";
+import { matchesAny } from "./glob.js";
+import { isIgnoredByRules, loadIgnoreRulesForDirectory } from "./ignore-files.js";
+import { findMatches, makeSnippet, splitLines } from "./match-text.js";
 import { isPathInsideOrSame } from "./path-security.js";
 import { createSummary } from "./result.js";
+import { addDirectoryHit, addFileHit, buildDetailMatches, buildSummaryMatches, markTruncated } from "./search-results.js";
+import { compareStrings } from "./string-order.js";
 import type { SearchResult, SearchState } from "./internal-types.js";
+import type { IgnoreRule } from "./ignore-files.js";
 import type {
-  DetailMatch,
   Diagnostic,
   EffectiveRequest,
-  EncodingRuleResult,
-  FileSummaryMatch,
-  QueryType,
-  SupportedEncoding,
 } from "./public-types.js";
 
 export async function runSearch(request: EffectiveRequest, rootPath: string, diagnostics: Diagnostic[]): Promise<SearchResult> {
@@ -20,7 +21,9 @@ export async function runSearch(request: EffectiveRequest, rootPath: string, dia
     request,
     rootPath,
     detailsByFile: new Map(),
+    detailsByDirectory: new Map(),
     summariesByFile: new Map(),
+    summariesByDirectory: new Map(),
     diagnostics,
     truncationDiagnosticKeys: new Set(),
     summary: createSummary(),
@@ -28,14 +31,15 @@ export async function runSearch(request: EffectiveRequest, rootPath: string, dia
     globalLimitReached: false,
   };
 
-  await traverse(searchState, rootPath, "", 0);
-  const matches = request.output.mode === "detail" ? buildDetailMatches(searchState) : buildFileSummaryMatches(searchState);
+  await traverse(searchState, rootPath, "", 0, []);
+  const matches = request.output.mode === "detail" ? buildDetailMatches(searchState) : buildSummaryMatches(searchState);
   searchState.summary.filesMatched = searchState.summariesByFile.size;
+  searchState.summary.directoriesMatched = searchState.summariesByDirectory.size;
   searchState.summary.diagnostics = diagnostics.length;
   return { matches, summary: searchState.summary };
 }
 
-async function traverse(state: SearchState, absoluteDir: string, relativeDir: string, depth: number): Promise<void> {
+async function traverse(state: SearchState, absoluteDir: string, relativeDir: string, depth: number, inheritedIgnoreRules: IgnoreRule[]): Promise<void> {
   if (state.globalLimitReached) return;
   if (state.directoriesVisited >= state.request.search.maxDirectoriesVisited) {
     markTruncated(state, "max_directories_visited", "search stopped because maxDirectoriesVisited was reached", { maxDirectoriesVisited: state.request.search.maxDirectoriesVisited });
@@ -43,6 +47,7 @@ async function traverse(state: SearchState, absoluteDir: string, relativeDir: st
     return;
   }
   state.directoriesVisited += 1;
+  if (!relativeDir) state.summary.directoriesVisited += 1;
 
   const safeDir = await resolveInsideRoot(state, absoluteDir, relativeDir || ".");
   if (!safeDir) return;
@@ -54,7 +59,8 @@ async function traverse(state: SearchState, absoluteDir: string, relativeDir: st
     state.diagnostics.push({ severity: "warning", code: "directory_not_readable", message: "directory could not be read and was skipped", path: relativeDir || ".", skipped: true });
     return;
   }
-  entries.sort((a, b) => a.name.localeCompare(b.name));
+  const ignoreRules = [...inheritedIgnoreRules, ...(await loadIgnoreRulesForDirectory(state.request, safeDir, relativeDir, state.diagnostics))];
+  entries.sort((a, b) => compareStrings(a.name, b.name));
   for (const entry of entries) {
     if (state.globalLimitReached) return;
     const relativePath = relativeDir ? `${relativeDir}/${entry.name}` : entry.name;
@@ -65,8 +71,19 @@ async function traverse(state: SearchState, absoluteDir: string, relativeDir: st
     }
     if (entry.isDirectory()) {
       if (matchesAny(entry.name, state.request.search.excludeDirNamePatterns)) continue;
+      if (isIgnoredByRules(ignoreRules, relativePath, true)) {
+        state.summary.directoriesIgnored += 1;
+        continue;
+      }
+      state.summary.directoriesVisited += 1;
+      if (hasTarget(state, "directory")) {
+        state.summary.directoriesScanned += 1;
+        for (const hit of findMatches(relativePath, state.request.query)) {
+          addDirectoryHit(state, relativePath, { type: "directory", path: relativePath, matchedText: hit.text });
+        }
+      }
       if (!state.request.search.recursive || depth >= state.request.search.maxDepth) continue;
-      await traverse(state, absolutePath, relativePath, depth + 1);
+      await traverse(state, absolutePath, relativePath, depth + 1, ignoreRules);
       continue;
     }
     if (!entry.isFile()) continue;
@@ -76,6 +93,10 @@ async function traverse(state: SearchState, absoluteDir: string, relativeDir: st
       return;
     }
     state.summary.filesVisited += 1;
+    if (isIgnoredByRules(ignoreRules, relativePath, false)) {
+      state.summary.filesIgnored += 1;
+      continue;
+    }
     if (!candidateFile(state, entry.name)) continue;
     await searchFile(state, absolutePath, relativePath, entry.name);
   }
@@ -88,16 +109,17 @@ function candidateFile(state: SearchState, basename: string): boolean {
 }
 
 async function searchFile(state: SearchState, absolutePath: string, relativePath: string, basename: string): Promise<void> {
-  const { target } = state.request.search;
+  const searchFilepath = hasTarget(state, "filepath");
+  const searchContent = hasTarget(state, "content");
   let countedScanned = false;
-  if (target === "filename" || target === "both") {
+  if (searchFilepath) {
     countedScanned = true;
     state.summary.filesScanned += 1;
     for (const hit of findMatches(relativePath, state.request.query)) {
-      addHit(state, relativePath, { type: "filename", file: relativePath, matchedText: hit.text });
+      addFileHit(state, relativePath, { type: "filepath", file: relativePath, matchedText: hit.text });
     }
   }
-  if (target !== "content" && target !== "both") return;
+  if (!searchContent) return;
 
   const safePath = await resolveInsideRoot(state, absolutePath, relativePath);
   if (!safePath) return;
@@ -155,7 +177,18 @@ async function searchFile(state: SearchState, absolutePath: string, relativePath
         return;
       }
       const snippet = makeSnippet(line, match.index, match.text.length, state.request.output.maxLineLength);
-      addHit(state, relativePath, {
+      const context = makeContext(
+        lines,
+        index,
+        {
+          contextLinesBefore: state.request.output.contextLinesBefore,
+          contextLinesAfter: state.request.output.contextLinesAfter,
+          maxLineChars: state.request.search.maxLineChars,
+          maxLineLength: state.request.output.maxLineLength,
+        },
+        (line, lineChars) => markLineSkipped(state, relativePath, line, lineChars),
+      );
+      addFileHit(state, relativePath, {
         type: "content",
         file: relativePath,
         line: index + 1,
@@ -164,6 +197,7 @@ async function searchFile(state: SearchState, absolutePath: string, relativePath
         text: snippet.text,
         trimmed: snippet.trimmed,
         ...(snippet.textStartColumn ? { textStartColumn: snippet.textStartColumn } : {}),
+        ...context,
         encoding: encodingInfo.encoding,
         encodingRule: encodingInfo.encodingRule,
       });
@@ -204,124 +238,6 @@ async function resolveInsideRoot(state: SearchState, absolutePath: string, relat
   return realPath;
 }
 
-function addHit(state: SearchState, file: string, hit: DetailMatch): void {
-  if (state.summary.matches >= state.request.output.maxMatches) {
-    markTruncated(state, "max_matches", "search stopped because maxMatches was reached", { maxMatches: state.request.output.maxMatches });
-    state.globalLimitReached = true;
-    return;
-  }
-  state.summary.matches += 1;
-  const detail = state.detailsByFile.get(file) ?? [];
-  detail.push(hit);
-  state.detailsByFile.set(file, detail);
-
-  const summary = state.summariesByFile.get(file) ?? {
-    type: "file",
-    file,
-    matchTypes: [],
-    filenameMatched: false,
-    contentMatched: false,
-    lines: [],
-    matchCount: 0,
-    snippets: [],
-  };
-  summary.matchCount += 1;
-  if (hit.type === "filename") {
-    summary.filenameMatched = true;
-    if (!summary.matchTypes.includes("filename")) summary.matchTypes.push("filename");
-  } else {
-    summary.contentMatched = true;
-    if (!summary.matchTypes.includes("content")) summary.matchTypes.push("content");
-    if (!summary.lines.includes(hit.line)) summary.lines.push(hit.line);
-    if (summary.snippets.length < state.request.output.maxSnippetsPerFile) {
-      const snippet: FileSummaryMatch["snippets"][number] = { type: "content", line: hit.line, text: hit.text, trimmed: hit.trimmed };
-      if (hit.textStartColumn) snippet.textStartColumn = hit.textStartColumn;
-      summary.snippets.push(snippet);
-    } else {
-      markTruncated(state, "max_snippets_per_file", "snippets were omitted because maxSnippetsPerFile was reached", { file, maxSnippetsPerFile: state.request.output.maxSnippetsPerFile });
-    }
-    summary.encoding = hit.encoding;
-    summary.encodingRule = hit.encodingRule;
-  }
-  state.summariesByFile.set(file, summary);
-}
-
-function markTruncated(state: SearchState, reason: string, message: string, details: Record<string, unknown>): void {
-  if (!state.summary.truncated) {
-    state.summary.truncated = true;
-    state.summary.truncatedReason = reason;
-  }
-  const diagnosticKey = `${reason}:${JSON.stringify(details)}`;
-  if (state.truncationDiagnosticKeys.has(diagnosticKey)) return;
-  state.truncationDiagnosticKeys.add(diagnosticKey);
-  state.diagnostics.push({ severity: "info", code: reason, message, details });
-}
-
-function buildDetailMatches(state: SearchState): DetailMatch[] {
-  return [...state.detailsByFile.entries()]
-    .sort(([a], [b]) => a.localeCompare(b))
-    .flatMap(([, hits]) => hits.sort((a, b) => typeRank(a.type) - typeRank(b.type) || ((a.type === "content" ? a.line : 0) - (b.type === "content" ? b.line : 0)) || ((a.type === "content" ? a.column : 0) - (b.type === "content" ? b.column : 0))));
-}
-
-function buildFileSummaryMatches(state: SearchState): FileSummaryMatch[] {
-  return [...state.summariesByFile.values()]
-    .sort((a, b) => a.file.localeCompare(b.file))
-    .map((item) => ({ ...item, lines: item.lines.sort((a, b) => a - b) }));
-}
-
-function typeRank(type: DetailMatch["type"]): number {
-  return type === "filename" ? 0 : 1;
-}
-
-function findMatches(text: string, query: { type: QueryType; text: string }): Array<{ index: number; text: string }> {
-  if (query.type === "literal") {
-    const hits: Array<{ index: number; text: string }> = [];
-    let from = 0;
-    while (from <= text.length) {
-      const index = text.indexOf(query.text, from);
-      if (index === -1) break;
-      hits.push({ index, text: query.text });
-      from = index + Math.max(query.text.length, 1);
-    }
-    return hits;
-  }
-  const regex = new RegExp(query.text, "g");
-  const hits: Array<{ index: number; text: string }> = [];
-  let match;
-  while ((match = regex.exec(text)) !== null) {
-    hits.push({ index: match.index, text: match[0] });
-    if (match[0].length === 0) regex.lastIndex += 1;
-  }
-  return hits;
-}
-
-function makeSnippet(line: string, matchIndex: number, matchLength: number, maxLineLength: number): { text: string; trimmed: boolean; textStartColumn?: number } {
-  if (line.length <= maxLineLength) return { text: line, trimmed: false };
-  const matchEnd = matchIndex + matchLength;
-  let start = Math.max(0, Math.floor((matchIndex + matchEnd - maxLineLength) / 2));
-  if (start + maxLineLength > line.length) start = Math.max(0, line.length - maxLineLength);
-  return { text: line.slice(start, start + maxLineLength), trimmed: true, ...(start > 0 ? { textStartColumn: start + 1 } : {}) };
-}
-
-function splitLines(text: string): string[] {
-  return text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
-}
-
-function selectEncoding(config: EffectiveRequest["encoding"], relativePath: string, basename: string): { encoding: SupportedEncoding; encodingRule: EncodingRuleResult } {
-  for (const rule of config.rules) {
-    if (rule.pathPattern && pathGlobMatch(relativePath, rule.pathPattern)) {
-      return { encoding: rule.encoding, encodingRule: { type: "pathPattern", pattern: rule.pathPattern } };
-    }
-  }
-  for (const rule of config.rules) {
-    if (rule.fileNamePattern && globMatch(basename, rule.fileNamePattern)) {
-      return { encoding: rule.encoding, encodingRule: { type: "fileNamePattern", pattern: rule.fileNamePattern } };
-    }
-  }
-  return { encoding: config.default, encodingRule: { type: "default" } };
-}
-
-function decode(bytes: Uint8Array, encoding: SupportedEncoding): string {
-  if (encoding === "utf-8") return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
-  return iconv.decode(Buffer.from(bytes), "shift_jis");
+function hasTarget(state: SearchState, target: EffectiveRequest["search"]["targets"][number]): boolean {
+  return state.request.search.targets.includes(target);
 }

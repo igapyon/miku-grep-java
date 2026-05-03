@@ -17,7 +17,7 @@ java -jar target/miku-grep.jar --help
 Distribution zip users can run the versioned jar inside the extracted archive:
 
 ```bash
-java -jar miku-grep-0.8.1.jar < request.json > result.json
+java -jar miku-grep-0.8.4.jar < request.json > result.json
 ```
 
 ## Stdio Contract
@@ -71,12 +71,45 @@ Unknown request fields are validation errors.
     "text": "RepositoryMap"
   },
   "search": {
-    "target": "content",
+    "targets": ["content"],
     "recursive": true,
     "maxDepth": 8
   }
 }
 ```
+
+## Search Targets
+
+`search.targets` is a non-empty array of `content`, `filepath`, and/or
+`directory`.
+
+- `content` searches file contents.
+- `filepath` searches root-relative file paths.
+- `directory` searches root-relative directory paths.
+
+The default is `["content"]`.
+
+## Output Modes and Context Lines
+
+`output.mode` is `summary` or `detail`. The default is `summary`.
+
+Detail content matches can include surrounding lines with:
+
+- `output.contextLines`
+- `output.contextLinesBefore`
+- `output.contextLinesAfter`
+
+Context lines are valid only in detail mode. The maximum context line count is
+20.
+
+## Ignore Files
+
+By default, `ignore.mode` is `auto`, and the runtime reads `.gitignore`,
+`.ignore`, and `.git/info/exclude` under the root. `ignore.mode: "none"`
+disables ignore file handling.
+
+The Java runtime supports the upstream MVP ignore pattern subset. Unsupported
+ignore patterns are skipped and reported with `unsupported_ignore_pattern`.
 
 ## Include / Exclude Defaults
 

@@ -3,11 +3,11 @@ package jp.igapyon.mikugrep.model;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
 @JsonPropertyOrder({ "type", "file", "matchedText" })
-public class FilenameMatch extends MikuGrepMatch {
+public class FilepathMatch extends MikuGrepMatch {
     public String file;
     public String matchedText;
 
-    public FilenameMatch() {
-        type = MatchType.FILENAME;
+    public FilepathMatch() {
+        type = MatchType.FILEPATH;
     }
 }

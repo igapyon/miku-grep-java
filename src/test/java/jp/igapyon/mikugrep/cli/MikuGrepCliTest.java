@@ -22,7 +22,7 @@ class MikuGrepCliTest {
         CliRun run = run(new String[] { "--version" }, "");
 
         assertEquals(0, run.exitCode);
-        assertEquals("miku-grep 0.8.1\n", run.stdout);
+        assertEquals("miku-grep 0.8.4\n", run.stdout);
         assertEquals("", run.stderr);
     }
 
@@ -50,7 +50,7 @@ class MikuGrepCliTest {
         assertTrue(run.stdout.contains("Possible validation error output"));
         assertTrue(run.stdout.contains("COMMON DIAGNOSTIC CODES"));
         assertTrue(run.stdout.contains("\"version\": 1"));
-        assertTrue(run.stdout.contains("search.target"));
+        assertTrue(run.stdout.contains("search.targets"));
         assertTrue(run.stdout.contains("output.mode"));
         assertTrue(run.stdout.contains("encoding.rules"));
     }

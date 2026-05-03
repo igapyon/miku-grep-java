@@ -122,6 +122,7 @@ focused regression:
 ```text
 upstream test / intent:
   vendor/miku-grep/test/search-content.test.ts
+  detail content matches, snippets, context lines, and content target behavior
 
 java tests:
   jp.igapyon.mikugrep.search.SearchTest
@@ -136,6 +137,7 @@ focused regression:
 ```text
 upstream test / intent:
   vendor/miku-grep/test/search-filename.test.ts
+  filepath target, directory target, combined targets, and summary aggregation
 
 java tests:
   jp.igapyon.mikugrep.search.SearchTest
@@ -145,6 +147,23 @@ fixtures:
 
 focused regression:
   mvn test -Dtest=SearchTest
+```
+
+```text
+upstream test / intent:
+  vendor/miku-grep/test/ignore-files.test.ts
+  ignore file discovery, ignore source selection, ignored counters, and
+  unsupported ignore-pattern diagnostics
+
+java tests:
+  jp.igapyon.mikugrep.search.SearchTest
+  jp.igapyon.mikugrep.validation.ValidationTest
+
+fixtures:
+  temporary files from JUnit TempDir
+
+focused regression:
+  mvn test -Dtest=SearchTest,ValidationTest
 ```
 
 ```text

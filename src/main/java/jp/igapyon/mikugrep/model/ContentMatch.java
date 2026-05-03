@@ -13,6 +13,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
         "text",
         "trimmed",
         "textStartColumn",
+        "contextBefore",
+        "contextAfter",
         "encoding",
         "encodingRule"
 })
@@ -24,6 +26,8 @@ public class ContentMatch extends MikuGrepMatch {
     public String text;
     public Boolean trimmed;
     public Integer textStartColumn;
+    public java.util.List<ContextLine> contextBefore;
+    public java.util.List<ContextLine> contextAfter;
     public SupportedEncoding encoding;
     public EncodingRuleResult encodingRule;
 

@@ -3,15 +3,13 @@ package jp.igapyon.mikugrep.model;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
-public enum MatchType implements JsonValueEnum {
-    FILEPATH("filepath"),
-    DIRECTORY("directory"),
-    CONTENT("content"),
-    FILE("file");
+public enum IgnoreMode implements JsonValueEnum {
+    AUTO("auto"),
+    NONE("none");
 
     private final String jsonValue;
 
-    MatchType(String jsonValue) {
+    IgnoreMode(String jsonValue) {
         this.jsonValue = jsonValue;
     }
 
@@ -21,7 +19,7 @@ public enum MatchType implements JsonValueEnum {
     }
 
     @JsonCreator
-    public static MatchType fromJsonValue(String value) {
-        return JsonEnum.fromJsonValue(MatchType.class, value);
+    public static IgnoreMode fromJsonValue(String value) {
+        return JsonEnum.fromJsonValue(IgnoreMode.class, value);
     }
 }

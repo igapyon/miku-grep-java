@@ -34,6 +34,61 @@ follow-up:
 
 ```text
 upstream file:
+  vendor/miku-grep
+
+java classes:
+  mapped Java class groups
+
+tests:
+  mapping inventory only
+
+diff summary:
+  behavior diff:
+    - Upstream `devel` advanced from
+      `f1104a0e4e650b23a0b09ea22e15731a4d67c589` to
+      `0dde0221b16118848b7c859aeb74c32595ff40ed`.
+    - Upstream package version at the new snapshot is 0.8.4.
+    - Upstream tag `v0.8.4` points at the new snapshot commit.
+    - Request search target changed from singular `target` values
+      `content` / `filename` / `both` to `targets` arrays containing
+      `content` / `filepath` / `directory`.
+    - Output summary mode changed from `file-summary` to `summary`.
+    - Detail output gained `contextLines`, `contextLinesBefore`, and
+      `contextLinesAfter`.
+    - Ignore file handling was added for `.gitignore`, `.ignore`, and
+      `.git/info/exclude`.
+    - Directory matches, directory summary matches, ignored counters, and
+      directory scan counters were added to the result contract.
+  naming diff:
+    - Upstream renamed filename match vocabulary to filepath match vocabulary.
+  unmigrated diff:
+    - None for the Java v0.8.4 request / result contract accepted in this
+      follow-up.
+  Java-side extension:
+    - Java packaging remains a Java-side runtime artifact.
+
+follow-up:
+  - Fetched `https://github.com/igapyon/miku-grep.git` into
+    `workplace/upstream-miku-grep`.
+  - Fast-forwarded local upstream checkout to
+    `0dde0221b16118848b7c859aeb74c32595ff40ed`.
+  - Synchronized the vendored snapshot under `vendor/miku-grep`.
+  - Updated `docs/upstream-snapshot.md` to the new commit.
+  - Fetched and confirmed upstream tag `v0.8.4`.
+  - Updated upstream class and test mappings for new upstream files and tests.
+  - Updated Java request validation, result models, search traversal, help
+    text, Java CLI spec, README, and focused tests for upstream v0.8.4
+    behavior.
+  - `mvn test -Dtest=SearchTest,ValidationTest,MikuGrepJsonTest,MikuGrepCliTest`
+    passed.
+  - `mvn test` passed.
+  - `mvn package` passed and created `target/miku-grep-0.8.4-dist.zip`.
+  - `java -jar target/miku-grep.jar --version` printed `miku-grep 0.8.4`.
+  - `java -jar target/miku-grep.jar --help` succeeded.
+```
+
+```text
+upstream file:
   vendor/miku-grep/src/validation.ts
   vendor/miku-grep/src/help.ts
   vendor/miku-grep/docs/miku-grep-cli-spec.md
