@@ -164,6 +164,8 @@ public final class HelpText {
                 + "  }\n"
                 + "\n"
                 + "DETAIL MATCHES\n"
+                + "  Content targets return one item per content hit.\n"
+                + "  Filepath and directory targets return at most one representative hit per path.\n"
                 + "  Content hit:\n"
                 + "    { \"type\": \"content\", \"file\": \"src/App.java\", \"line\": 42, \"column\": 7,\n"
                 + "      \"matchedText\": \"RepositoryMap\", \"text\": \"class RepositoryMap {\",\n"

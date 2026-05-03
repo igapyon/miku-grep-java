@@ -157,6 +157,45 @@ class SearchTest {
     }
 
     @Test
+    void filepathDetailReturnsAtMostOneRepresentativeHitPerPath() throws Exception {
+        write("README.md", "readme\n");
+
+        SearchResult result = run("{\"targets\":[\"filepath\"]}", "{\"mode\":\"detail\"}", ".*", "regex");
+
+        assertEquals(1, result.matches.size());
+        FilepathMatch match = (FilepathMatch) result.matches.get(0);
+        assertEquals("README.md", match.file);
+        assertEquals("README.md", match.matchedText);
+        assertEquals(1, result.summary.matches);
+    }
+
+    @Test
+    void directoryDetailReturnsAtMostOneRepresentativeHitPerPath() throws Exception {
+        Files.createDirectories(tempDir.resolve("docs"));
+
+        SearchResult result = run("{\"targets\":[\"directory\"]}", "{\"mode\":\"detail\"}", ".*", "regex");
+
+        assertEquals(1, result.matches.size());
+        DirectoryMatch match = (DirectoryMatch) result.matches.get(0);
+        assertEquals("docs", match.path);
+        assertEquals("docs", match.matchedText);
+        assertEquals(1, result.summary.matches);
+    }
+
+    @Test
+    void pathDetailKeepsZeroLengthRepresentativeWhenNoNonEmptyHitExists() throws Exception {
+        write("src/foo.ts", "no content hit\n");
+
+        SearchResult result = run("{\"targets\":[\"filepath\"]}", "{\"mode\":\"detail\"}", "(?=foo)", "regex");
+
+        assertEquals(1, result.matches.size());
+        FilepathMatch match = (FilepathMatch) result.matches.get(0);
+        assertEquals("src/foo.ts", match.file);
+        assertEquals("", match.matchedText);
+        assertEquals(1, result.summary.matches);
+    }
+
+    @Test
     void detailContentHitsCanIncludeContextLines() throws Exception {
         write("App.java", "line 1\nline 2\nclass RepositoryMap {\nline 4\nline 5\n");
 

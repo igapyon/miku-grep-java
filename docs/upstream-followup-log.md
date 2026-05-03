@@ -6,6 +6,51 @@ The stable upstream reference is `vendor/miku-grep`.
 
 Use one entry per upstream file or Java-side extension.
 
+## 2026-05-03 Vendor Snapshot Refresh
+
+```text
+upstream file:
+  vendor/miku-grep
+
+java classes:
+  jp.igapyon.mikugrep.search.Search
+  jp.igapyon.mikugrep.cli.HelpText
+
+tests:
+  jp.igapyon.mikugrep.search.SearchTest
+  jp.igapyon.mikugrep.docs.DocumentationSyncTest
+
+diff summary:
+  behavior diff:
+    - Upstream `devel` advanced from
+      `0dde0221b16118848b7c859aeb74c32595ff40ed` to
+      `6919c0f65d8347c0b92338806e859d4bf59f2fdb`.
+    - Upstream package version remains 0.8.4.
+    - The new upstream commit is not tagged.
+  naming diff:
+    - Detail mode filepath / directory hits are documented and tested as
+      one representative hit per matched path.
+  unmigrated diff:
+    - None for the path detail representative-hit contract in this follow-up.
+  Java-side extension:
+    - Java packaging remains a Java-side runtime artifact.
+
+follow-up:
+  - Fetched `https://github.com/igapyon/miku-grep.git` into
+    `workplace/upstream-miku-grep`.
+  - Fast-forwarded local upstream checkout to
+    `6919c0f65d8347c0b92338806e859d4bf59f2fdb`.
+  - Synchronized the vendored snapshot under `vendor/miku-grep`.
+  - Updated `docs/upstream-snapshot.md` to the new commit.
+  - Updated Java filepath / directory detail search to choose one
+    representative path match.
+  - Updated Java CLI help, Java CLI spec, README, and focused tests.
+  - `mvn test -Dtest=SearchTest` passed.
+  - `mvn test` passed with 61 tests.
+  - `mvn package` passed with 61 tests and created
+    `target/miku-grep-0.8.4-dist.zip`.
+```
+
 ## Entry Template
 
 ```text

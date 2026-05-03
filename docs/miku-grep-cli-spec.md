@@ -102,6 +102,11 @@ Detail content matches can include surrounding lines with:
 Context lines are valid only in detail mode. The maximum context line count is
 20.
 
+For `filepath` and `directory` targets, detail mode returns at most one item per
+matched path. If the query matches the same path string multiple times, the
+runtime returns a representative `matchedText`: the first non-empty match, or
+the first zero-length match when there is no non-empty match.
+
 ## Ignore Files
 
 By default, `ignore.mode` is `auto`, and the runtime reads `.gitignore`,

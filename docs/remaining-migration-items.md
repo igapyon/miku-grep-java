@@ -102,6 +102,9 @@ Planned focused regression commands:
 
 ## Latest Verification
 
+- `mvn test -Dtest=SearchTest` succeeded with 17 tests.
+- `mvn test` succeeded with 61 tests.
+- `mvn package` succeeded with 61 tests and created `target/miku-grep-0.8.4-dist.zip`.
 - `mvn test -Dtest=DocumentationSyncTest,MikuGrepCliTest` succeeded.
 - `mvn test -Dtest=MikuGrepCliTest` succeeded.
 - `mvn package` succeeded with 55 tests.
