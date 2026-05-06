@@ -15,6 +15,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
         "lines",
         "matchCount",
         "snippets",
+        "relevance",
         "encoding",
         "encodingRule"
 })
@@ -26,6 +27,7 @@ public class FileSummaryMatch extends MikuGrepMatch {
     public List<Integer> lines;
     public Integer matchCount;
     public List<FileSummarySnippet> snippets;
+    public RelevanceInfo relevance;
     public SupportedEncoding encoding;
     public EncodingRuleResult encodingRule;
 

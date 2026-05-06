@@ -34,14 +34,24 @@ java classes:
   jp.igapyon.mikugrep.model.MikuGrepRequest
   jp.igapyon.mikugrep.model.EffectiveRequest
   jp.igapyon.mikugrep.model.MikuGrepResult
+  jp.igapyon.mikugrep.model.RequestMode
   jp.igapyon.mikugrep.model.Diagnostic
   jp.igapyon.mikugrep.model.Summary
   jp.igapyon.mikugrep.model.MikuGrepMatch
-  jp.igapyon.mikugrep.model.FilenameMatch
   jp.igapyon.mikugrep.model.ContentMatch
   jp.igapyon.mikugrep.model.FileSummaryMatch
   jp.igapyon.mikugrep.model.FileSummarySnippet
   jp.igapyon.mikugrep.model.DirectorySummaryMatch
+  jp.igapyon.mikugrep.model.AgentFileMatch
+  jp.igapyon.mikugrep.model.AgentDirectoryMatch
+  jp.igapyon.mikugrep.model.FileListEntry
+  jp.igapyon.mikugrep.model.FileListSummary
+  jp.igapyon.mikugrep.model.FileListSummaryCount
+  jp.igapyon.mikugrep.model.ReadfileRequestHint
+  jp.igapyon.mikugrep.model.ReadfileRequest
+  jp.igapyon.mikugrep.model.ReadfileRequestFile
+  jp.igapyon.mikugrep.model.RelevanceInfo
+  jp.igapyon.mikugrep.model.ReadRangeCandidate
   jp.igapyon.mikugrep.model.ContextLine
   jp.igapyon.mikugrep.model.EncodingRuleInput
   jp.igapyon.mikugrep.model.EncodingRuleResult
@@ -52,6 +62,8 @@ notes:
   - JSON output ordering should be stable and should follow the upstream
     contract where visible.
   - `MikuGrepJson` is the Jackson helper for request / result JSON handling.
+  - v0.9.0 adds listFiles, agent matches, relevance, readfile hints,
+    query case, and glob query model fields.
 ```
 
 ```text
@@ -113,6 +125,22 @@ notes:
     diagnostics, summary counts, match ordering, snippet trimming, context
     lines, ignore files, and encoding selection.
   - Runtime differences in Shift_JIS decoding are acceptable when documented.
+```
+
+```text
+upstream file:
+  vendor/miku-grep/src/list-files.ts
+
+java classes:
+  jp.igapyon.mikugrep.search.ListFiles
+  jp.igapyon.mikugrep.search.ListFilesResult
+  jp.igapyon.mikugrep.model.FileListEntry
+  jp.igapyon.mikugrep.model.FileListSummary
+  jp.igapyon.mikugrep.model.FileListSummaryCount
+
+notes:
+  - Covers `mode: "listFiles"` traversal, candidate filtering, optional glob
+    query path filtering, file list ordering, and file summary aggregation.
 ```
 
 ```text

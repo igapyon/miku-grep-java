@@ -5,7 +5,8 @@ import com.fasterxml.jackson.annotation.JsonValue;
 
 public enum QueryType implements JsonValueEnum {
     LITERAL("literal"),
-    REGEX("regex");
+    REGEX("regex"),
+    GLOB("glob");
 
     private final String jsonValue;
 

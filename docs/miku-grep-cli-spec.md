@@ -17,7 +17,7 @@ java -jar target/miku-grep.jar --help
 Distribution zip users can run the versioned jar inside the extracted archive:
 
 ```bash
-java -jar miku-grep-0.8.4.jar < request.json > result.json
+java -jar miku-grep-0.9.0.jar < request.json > result.json
 ```
 
 ## Stdio Contract
@@ -78,6 +78,22 @@ Unknown request fields are validation errors.
 }
 ```
 
+## Request Mode and Query
+
+`mode` is `search` or `listFiles`. The default is `search`.
+
+`query.type` is `literal`, `regex`, or `glob`.
+
+- `literal` performs substring matching.
+- `regex` uses Java `Pattern`.
+- `glob` performs path-style matching and is valid for filepath / directory
+  matching. In `listFiles` mode, an optional query must use `glob`.
+
+`query.case` is `sensitive` or `insensitive`. The default is `sensitive`.
+
+`detectGitRoot` is a boolean. When true, the runtime walks upward from `root`
+and uses the nearest `.git` directory or file as the effective root.
+
 ## Search Targets
 
 `search.targets` is a non-empty array of `content`, `filepath`, and/or
@@ -91,7 +107,12 @@ The default is `["content"]`.
 
 ## Output Modes and Context Lines
 
-`output.mode` is `summary` or `detail`. The default is `summary`.
+`output.mode` is `summary`, `detail`, or `agent`. The default is `summary`.
+
+`output.sort` is `path` or `relevance`. The default is `path`.
+
+`output.includeReadfileRequestHints` is a boolean. When true, search mode adds
+`readfileHints` for matched files.
 
 Detail content matches can include surrounding lines with:
 
@@ -106,6 +127,17 @@ For `filepath` and `directory` targets, detail mode returns at most one item per
 matched path. If the query matches the same path string multiple times, the
 runtime returns a representative `matchedText`: the first non-empty match, or
 the first zero-length match when there is no non-empty match.
+
+Agent mode returns `agentFile` and `agentDirectory` matches. File matches
+include representative snippets and read ranges for follow-up file reads.
+
+## List Files Mode
+
+`mode: "listFiles"` traverses the same candidate file set and returns top-level
+`files` plus `fileSummary`. `matches` is empty in this mode.
+
+When a query is supplied in listFiles mode, it must use `query.type: "glob"` and
+filters root-relative file paths.
 
 ## Ignore Files
 

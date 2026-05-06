@@ -53,7 +53,7 @@ stdout is reserved for result JSON except for `--version` and `--help`.
   - executable shaded runtime jar
 - `target/miku-grep-sources.jar`
   - source jar
-- `target/miku-grep-0.8.4-dist.zip`
+- `target/miku-grep-0.9.0-dist.zip`
   - distribution zip containing the versioned runtime jar, README, LICENSE,
     and runtime-oriented docs
 
@@ -82,7 +82,7 @@ The Java runtime intentionally documents these accepted differences:
 Other observable JSON contract differences should be treated as regressions
 unless explicitly recorded in the follow-up log.
 
-## v0.8.4 Contract Notes
+## v0.9.0 Contract Notes
 
 - Search targets are specified as `search.targets`, a non-empty array of
   `content`, `filepath`, and/or `directory`.
@@ -93,3 +93,12 @@ unless explicitly recorded in the follow-up log.
   matched path.
 - Ignore file handling is enabled by default for `.gitignore`, `.ignore`, and
   `.git/info/exclude`; use `ignore.mode: "none"` to disable it.
+- `mode: "listFiles"` lists candidate files and returns `files` plus
+  `fileSummary`; an optional glob query can filter paths.
+- `output.mode: "agent"` returns agent-oriented file and directory matches.
+- `output.sort: "relevance"` annotates summary / agent matches with relevance
+  score information and sorts by score.
+- `query.type: "glob"` is supported for filepath / directory-oriented matching,
+  including `listFiles` path filtering.
+- `query.case: "insensitive"` enables case-insensitive literal and regex
+  matching.

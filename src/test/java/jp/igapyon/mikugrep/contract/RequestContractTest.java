@@ -85,6 +85,7 @@ class RequestContractTest {
         assertEquals(Integer.valueOf(0), output.contextLinesAfter);
 
         EncodingOptions encoding = RequestContract.DEFAULTS.encoding();
+        assertNull(encoding.preset);
         assertEquals(SupportedEncoding.UTF_8, encoding.defaultEncoding);
         assertEquals(0, encoding.rules.size());
         assertEquals("skip", encoding.onDecodeError);

@@ -13,14 +13,18 @@ import jp.igapyon.mikugrep.contract.RequestContract;
 import jp.igapyon.mikugrep.contract.RequestFieldShape;
 import jp.igapyon.mikugrep.json.MikuGrepJson;
 import jp.igapyon.mikugrep.model.EffectiveRequest;
+import jp.igapyon.mikugrep.model.EncodingPreset;
 import jp.igapyon.mikugrep.model.EncodingOptions;
 import jp.igapyon.mikugrep.model.EncodingRuleInput;
 import jp.igapyon.mikugrep.model.IgnoreMode;
 import jp.igapyon.mikugrep.model.IgnoreOptions;
 import jp.igapyon.mikugrep.model.OutputMode;
 import jp.igapyon.mikugrep.model.OutputOptions;
+import jp.igapyon.mikugrep.model.OutputSort;
 import jp.igapyon.mikugrep.model.Query;
+import jp.igapyon.mikugrep.model.QueryCase;
 import jp.igapyon.mikugrep.model.QueryType;
+import jp.igapyon.mikugrep.model.RequestMode;
 import jp.igapyon.mikugrep.model.SearchOptions;
 import jp.igapyon.mikugrep.model.SearchTarget;
 import jp.igapyon.mikugrep.model.SupportedEncoding;
@@ -54,28 +58,56 @@ public final class Validation {
         if (!isNonEmptyText(request.get("root"))) {
             return invalid("invalid_request", "root must be a non-empty string");
         }
-        if (!isPlainObject(request.get("query"))) {
-            return invalid("invalid_request", "query must be an object");
+
+        JsonNode detectGitRootNode = request.get("detectGitRoot");
+        Boolean detectGitRoot = detectGitRootNode == null || detectGitRootNode.isNull()
+                ? Boolean.FALSE
+                : (detectGitRootNode.isBoolean() ? Boolean.valueOf(detectGitRootNode.booleanValue()) : null);
+        if (detectGitRoot == null) {
+            return invalid("invalid_request", "detectGitRoot must be boolean");
         }
 
-        JsonNode queryInput = request.get("query");
-        String queryTypeText = textValue(queryInput.get("type"));
-        QueryType queryType = queryType(queryTypeText);
-        if (queryType == null) {
-            return invalid("invalid_query_type", "query.type must be literal or regex");
+        RequestMode mode = requestMode(textValue(request.get("mode")));
+        if (mode == null) {
+            return invalid("invalid_mode", "mode must be search or listFiles");
         }
-        String queryText = textValue(queryInput.get("text"));
-        if (queryText == null) {
-            return invalid("invalid_request", "query.text must be a string");
-        }
-        if (queryText.length() == 0) {
-            return invalid("empty_query", "query.text must not be empty");
-        }
-        if (queryType == QueryType.REGEX) {
-            ValidationResult regexResult = validateRegex(queryText);
-            if (regexResult != null) {
-                return regexResult;
+
+        Query query = null;
+        if (mode == RequestMode.SEARCH || request.has("query")) {
+            if (!isPlainObject(request.get("query"))) {
+                return invalid("invalid_request", "query must be an object");
             }
+
+            JsonNode queryInput = request.get("query");
+            String queryTypeText = textValue(queryInput.get("type"));
+            QueryType queryType = queryType(queryTypeText);
+            if (queryType == null) {
+                return invalid("invalid_query_type", "query.type must be literal, regex, or glob");
+            }
+            String queryText = textValue(queryInput.get("text"));
+            if (queryText == null) {
+                return invalid("invalid_request", "query.text must be a string");
+            }
+            if (queryText.length() == 0) {
+                return invalid("empty_query", "query.text must not be empty");
+            }
+            QueryCase queryCase = queryCase(textValue(queryInput.get("case")));
+            if (queryCase == null) {
+                return invalid("invalid_query_case", "query.case must be sensitive or insensitive");
+            }
+            if (mode == RequestMode.LIST_FILES && queryType != QueryType.GLOB) {
+                return invalid("invalid_query_type", "listFiles query.type must be glob");
+            }
+            if (queryType == QueryType.REGEX) {
+                ValidationResult regexResult = validateRegex(queryText);
+                if (regexResult != null) {
+                    return regexResult;
+                }
+            }
+            query = new Query();
+            query.type = queryType;
+            query.text = queryText;
+            query.queryCase = queryCase;
         }
 
         JsonNode searchInput = objectOrEmpty(request.get("search"));
@@ -89,6 +121,9 @@ public final class Validation {
         SearchBuildResult searchResult = buildSearch(searchInput);
         if (!searchResult.result.ok) {
             return searchResult.result;
+        }
+        if (mode == RequestMode.SEARCH && query != null && query.type == QueryType.GLOB && searchResult.search.targets.contains(SearchTarget.CONTENT)) {
+            return invalid("invalid_search_target", "query.type glob supports filepath and directory targets only");
         }
         OutputBuildResult outputResult = buildOutput(outputInput);
         if (!outputResult.result.ok) {
@@ -104,10 +139,11 @@ public final class Validation {
         }
 
         EffectiveRequest effectiveRequest = new EffectiveRequest();
+        effectiveRequest.requestedRoot = request.get("root").textValue();
         effectiveRequest.root = request.get("root").textValue();
-        effectiveRequest.query = new Query();
-        effectiveRequest.query.type = queryType;
-        effectiveRequest.query.text = queryText;
+        effectiveRequest.detectGitRoot = detectGitRoot;
+        effectiveRequest.mode = mode;
+        effectiveRequest.query = query;
         effectiveRequest.search = searchResult.search;
         effectiveRequest.output = outputResult.output;
         effectiveRequest.encoding = encodingResult.encoding;
@@ -204,13 +240,28 @@ public final class Validation {
         String modeText = textValue(input.get("mode"));
         output.mode = modeText == null ? defaults.mode : outputMode(modeText);
         if (output.mode == null) {
-            return OutputBuildResult.invalid("invalid_output_mode", "output.mode must be detail or summary");
+            return OutputBuildResult.invalid("invalid_output_mode", "output.mode must be detail, summary, or agent");
+        }
+
+        String sortText = textValue(input.get("sort"));
+        output.sort = sortText == null ? defaults.sort : outputSort(sortText);
+        if (output.sort == null) {
+            return OutputBuildResult.invalid("invalid_output_sort", "output.sort must be path or relevance");
+        }
+
+        JsonNode includeHintsNode = input.get("includeReadfileRequestHints");
+        if (includeHintsNode == null || includeHintsNode.isNull()) {
+            output.includeReadfileRequestHints = defaults.includeReadfileRequestHints;
+        } else if (includeHintsNode.isBoolean()) {
+            output.includeReadfileRequestHints = Boolean.valueOf(includeHintsNode.booleanValue());
+        } else {
+            return OutputBuildResult.invalid("invalid_request", "output.includeReadfileRequestHints must be boolean");
         }
 
         boolean hasContextLines = input.has("contextLines");
         boolean hasContextLinesBefore = input.has("contextLinesBefore");
         boolean hasContextLinesAfter = input.has("contextLinesAfter");
-        if (output.mode == OutputMode.SUMMARY && (hasContextLines || hasContextLinesBefore || hasContextLinesAfter)) {
+        if (output.mode != OutputMode.DETAIL && (hasContextLines || hasContextLinesBefore || hasContextLinesAfter)) {
             return OutputBuildResult.invalid("invalid_context_lines", "context lines are only supported in detail mode");
         }
         if (hasContextLines && (hasContextLinesBefore || hasContextLinesAfter)) {
@@ -265,6 +316,12 @@ public final class Validation {
     private static EncodingBuildResult buildEncoding(JsonNode input) {
         EncodingOptions defaults = RequestContract.DEFAULTS.encoding();
         EncodingOptions encoding = new EncodingOptions();
+
+        String presetText = textValue(input.get("preset"));
+        encoding.preset = presetText == null ? defaults.preset : encodingPreset(presetText);
+        if (input.has("preset") && encoding.preset == null) {
+            return EncodingBuildResult.invalid("invalid_encoding_preset", "encoding.preset must be japanese-legacy");
+        }
 
         String defaultText = textValue(input.get("default"));
         encoding.defaultEncoding = defaultText == null ? defaults.defaultEncoding : supportedEncoding(defaultText);
@@ -468,6 +525,29 @@ public final class Validation {
         if ("regex".equals(value)) {
             return QueryType.REGEX;
         }
+        if ("glob".equals(value)) {
+            return QueryType.GLOB;
+        }
+        return null;
+    }
+
+    private static QueryCase queryCase(String value) {
+        if (value == null || "sensitive".equals(value)) {
+            return QueryCase.SENSITIVE;
+        }
+        if ("insensitive".equals(value)) {
+            return QueryCase.INSENSITIVE;
+        }
+        return null;
+    }
+
+    private static RequestMode requestMode(String value) {
+        if (value == null || "search".equals(value)) {
+            return RequestMode.SEARCH;
+        }
+        if ("listFiles".equals(value)) {
+            return RequestMode.LIST_FILES;
+        }
         return null;
     }
 
@@ -505,6 +585,19 @@ public final class Validation {
         if ("summary".equals(value)) {
             return OutputMode.SUMMARY;
         }
+        if ("agent".equals(value)) {
+            return OutputMode.AGENT;
+        }
+        return null;
+    }
+
+    private static OutputSort outputSort(String value) {
+        if ("path".equals(value)) {
+            return OutputSort.PATH;
+        }
+        if ("relevance".equals(value)) {
+            return OutputSort.RELEVANCE;
+        }
         return null;
     }
 
@@ -536,6 +629,13 @@ public final class Validation {
         }
         if ("shift_jis".equals(value)) {
             return SupportedEncoding.SHIFT_JIS;
+        }
+        return null;
+    }
+
+    private static EncodingPreset encodingPreset(String value) {
+        if ("japanese-legacy".equals(value)) {
+            return EncodingPreset.JAPANESE_LEGACY;
         }
         return null;
     }

@@ -22,6 +22,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import jp.igapyon.mikugrep.glob.Glob;
+import jp.igapyon.mikugrep.model.AgentDirectoryMatch;
+import jp.igapyon.mikugrep.model.AgentFileMatch;
 import jp.igapyon.mikugrep.model.ContentMatch;
 import jp.igapyon.mikugrep.model.ContextLine;
 import jp.igapyon.mikugrep.model.Diagnostic;
@@ -40,8 +42,13 @@ import jp.igapyon.mikugrep.model.IgnoreLoadedSource;
 import jp.igapyon.mikugrep.model.IgnoreMode;
 import jp.igapyon.mikugrep.model.MatchType;
 import jp.igapyon.mikugrep.model.MikuGrepMatch;
+import jp.igapyon.mikugrep.model.OutputMode;
+import jp.igapyon.mikugrep.model.OutputSort;
 import jp.igapyon.mikugrep.model.Query;
+import jp.igapyon.mikugrep.model.QueryCase;
 import jp.igapyon.mikugrep.model.QueryType;
+import jp.igapyon.mikugrep.model.ReadRangeCandidate;
+import jp.igapyon.mikugrep.model.RelevanceInfo;
 import jp.igapyon.mikugrep.model.SearchTarget;
 import jp.igapyon.mikugrep.model.SupportedEncoding;
 import jp.igapyon.mikugrep.pathsecurity.PathSecurity;
@@ -54,9 +61,9 @@ public final class Search {
     public static SearchResult runSearch(EffectiveRequest request, String rootPath, List<Diagnostic> diagnostics) {
         SearchState state = new SearchState(request, rootPath, diagnostics, ResultBuilder.createSummary());
         traverse(state, Paths.get(rootPath), "", 0, Collections.<IgnoreRule>emptyList());
-        List<MikuGrepMatch> matches = request.output.mode == jp.igapyon.mikugrep.model.OutputMode.DETAIL
+        List<MikuGrepMatch> matches = request.output.mode == OutputMode.DETAIL
                 ? buildDetailMatches(state)
-                : buildSummaryMatches(state);
+                : (request.output.mode == OutputMode.AGENT ? buildAgentMatches(state) : buildSummaryMatches(state));
         state.summary.filesMatched = state.summariesByFile.size();
         state.summary.directoriesMatched = state.summariesByDirectory.size();
         state.summary.diagnostics = diagnostics.size();
@@ -426,17 +433,68 @@ public final class Search {
         List<MikuGrepMatch> summaries = new ArrayList<MikuGrepMatch>();
         summaries.addAll(state.summariesByDirectory.values());
         summaries.addAll(state.summariesByFile.values());
-        Collections.sort(summaries, new Comparator<MikuGrepMatch>() {
-            public int compare(MikuGrepMatch left, MikuGrepMatch right) {
-                return summaryPath(left).compareTo(summaryPath(right));
-            }
-        });
+        sortSummaryMatches(summaries, state.request.output.sort);
         for (MikuGrepMatch summary : summaries) {
             if (summary instanceof FileSummaryMatch) {
                 Collections.sort(((FileSummaryMatch) summary).lines);
             }
         }
         return summaries;
+    }
+
+    private static List<MikuGrepMatch> buildAgentMatches(SearchState state) {
+        List<MikuGrepMatch> summaries = buildSummaryMatches(state);
+        List<MikuGrepMatch> agents = new ArrayList<MikuGrepMatch>();
+        for (MikuGrepMatch summary : summaries) {
+            if (summary instanceof DirectorySummaryMatch) {
+                DirectorySummaryMatch source = (DirectorySummaryMatch) summary;
+                AgentDirectoryMatch agent = new AgentDirectoryMatch();
+                agent.path = source.path;
+                agent.matchTypes = source.matchTypes;
+                agent.matchCount = source.matchCount;
+                agent.relevance = source.relevance;
+                agents.add(agent);
+            } else if (summary instanceof FileSummaryMatch) {
+                FileSummaryMatch source = (FileSummaryMatch) summary;
+                AgentFileMatch agent = new AgentFileMatch();
+                agent.file = source.file;
+                agent.matchTypes = source.matchTypes;
+                agent.matchCount = source.matchCount;
+                agent.lines = source.lines;
+                agent.representativeSnippets = source.snippets;
+                agent.readRanges = readRanges(source.lines);
+                agent.relevance = source.relevance;
+                agent.encoding = source.encoding;
+                agent.encodingRule = source.encodingRule;
+                agents.add(agent);
+            }
+        }
+        return agents;
+    }
+
+    private static void sortSummaryMatches(List<MikuGrepMatch> summaries, OutputSort sort) {
+        if (sort != OutputSort.RELEVANCE) {
+            Collections.sort(summaries, new Comparator<MikuGrepMatch>() {
+                public int compare(MikuGrepMatch left, MikuGrepMatch right) {
+                    return summaryPath(left).compareTo(summaryPath(right));
+                }
+            });
+            return;
+        }
+        for (MikuGrepMatch match : summaries) {
+            RelevanceInfo relevance = relevanceFor(match);
+            if (match instanceof FileSummaryMatch) {
+                ((FileSummaryMatch) match).relevance = relevance;
+            } else if (match instanceof DirectorySummaryMatch) {
+                ((DirectorySummaryMatch) match).relevance = relevance;
+            }
+        }
+        Collections.sort(summaries, new Comparator<MikuGrepMatch>() {
+            public int compare(MikuGrepMatch left, MikuGrepMatch right) {
+                int score = relevanceScore(right) - relevanceScore(left);
+                return score != 0 ? score : summaryPath(left).compareTo(summaryPath(right));
+            }
+        });
     }
 
     private static int typeRank(MikuGrepMatch match) {
@@ -458,20 +516,25 @@ public final class Search {
     }
 
     private static List<Hit> findMatches(String text, Query query) {
+        String sourceText = query.queryCase == QueryCase.INSENSITIVE ? text.toLowerCase() : text;
+        String queryText = query.queryCase == QueryCase.INSENSITIVE ? query.text.toLowerCase() : query.text;
         if (query.type == QueryType.LITERAL) {
             List<Hit> hits = new ArrayList<Hit>();
             int from = 0;
-            while (from <= text.length()) {
-                int index = text.indexOf(query.text, from);
+            while (from <= sourceText.length()) {
+                int index = sourceText.indexOf(queryText, from);
                 if (index < 0) {
                     break;
                 }
-                hits.add(new Hit(index, query.text));
-                from = index + Math.max(query.text.length(), 1);
+                hits.add(new Hit(index, text.substring(index, Math.min(text.length(), index + query.text.length()))));
+                from = index + Math.max(queryText.length(), 1);
             }
             return hits;
         }
-        Pattern pattern = Pattern.compile(query.text);
+        if (query.type == QueryType.GLOB) {
+            return Glob.pathGlobMatch(text, query.text) ? Collections.singletonList(new Hit(0, text)) : Collections.<Hit>emptyList();
+        }
+        Pattern pattern = query.queryCase == QueryCase.INSENSITIVE ? Pattern.compile(query.text, Pattern.CASE_INSENSITIVE) : Pattern.compile(query.text);
         Matcher matcher = pattern.matcher(text);
         List<Hit> hits = new ArrayList<Hit>();
         while (matcher.find()) {
@@ -633,29 +696,32 @@ public final class Search {
                         null, sourcePath, Integer.valueOf(index + 1), true, details("pattern", trimmed)));
                 continue;
             }
-            boolean anchored = trimmed.startsWith("/");
-            boolean directoryOnly = trimmed.endsWith("/");
-            String pattern = trimmed.replaceAll("^/+", "").replaceAll("/+$", "");
+            boolean negated = trimmed.startsWith("!");
+            String patternText = negated ? trimmed.substring(1) : trimmed;
+            boolean anchored = patternText.startsWith("/");
+            boolean directoryOnly = patternText.endsWith("/");
+            String pattern = patternText.replaceAll("^/+", "").replaceAll("/+$", "");
             if (pattern.length() == 0) {
                 continue;
             }
             loaded.patterns = Integer.valueOf(loaded.patterns.intValue() + 1);
-            rules.add(new IgnoreRule(baseDirectory, pattern, directoryOnly, anchored, pattern.indexOf('/') >= 0));
+            rules.add(new IgnoreRule(baseDirectory, pattern, negated, directoryOnly, anchored, pattern.indexOf('/') >= 0));
         }
         return rules;
     }
 
     private static boolean unsupportedIgnorePattern(String pattern) {
-        return pattern.startsWith("!") || pattern.startsWith("\\#") || pattern.startsWith("\\!") || pattern.matches(".*[\\[\\]{}].*");
+        return pattern.startsWith("\\#") || pattern.startsWith("\\!") || pattern.matches(".*[\\[\\]{}].*");
     }
 
     private static boolean isIgnoredByRules(List<IgnoreRule> rules, String relativePath, boolean directory) {
+        boolean ignored = false;
         for (IgnoreRule rule : rules) {
             if (ruleMatches(rule, relativePath, directory)) {
-                return true;
+                ignored = !rule.negated;
             }
         }
-        return false;
+        return ignored;
     }
 
     private static boolean ruleMatches(IgnoreRule rule, String relativePath, boolean directory) {
@@ -701,6 +767,83 @@ public final class Search {
             return ((DirectorySummaryMatch) match).path;
         }
         return ((FileSummaryMatch) match).file;
+    }
+
+    private static int relevanceScore(MikuGrepMatch match) {
+        if (match instanceof FileSummaryMatch && ((FileSummaryMatch) match).relevance != null) {
+            return ((FileSummaryMatch) match).relevance.score.intValue();
+        }
+        if (match instanceof DirectorySummaryMatch && ((DirectorySummaryMatch) match).relevance != null) {
+            return ((DirectorySummaryMatch) match).relevance.score.intValue();
+        }
+        return 0;
+    }
+
+    private static RelevanceInfo relevanceFor(MikuGrepMatch match) {
+        String candidatePath = summaryPath(match);
+        String lowerPath = candidatePath.toLowerCase();
+        int slash = lowerPath.lastIndexOf('/');
+        String basename = slash >= 0 ? lowerPath.substring(slash + 1) : lowerPath;
+        List<String> reasons = new ArrayList<String>();
+        int score = 0;
+        if (match instanceof FileSummaryMatch) {
+            FileSummaryMatch file = (FileSummaryMatch) match;
+            if (file.filepathMatched.booleanValue()) {
+                score += 40;
+                reasons.add("filepath-match");
+            }
+            if (file.contentMatched.booleanValue()) {
+                score += 20;
+                reasons.add("content-match");
+            }
+            score += Math.min(30, file.matchCount.intValue() * 3);
+            reasons.add("match-count:" + file.matchCount);
+        } else if (match instanceof DirectorySummaryMatch) {
+            DirectorySummaryMatch directory = (DirectorySummaryMatch) match;
+            score += 15;
+            reasons.add("directory-match");
+            score += Math.min(30, directory.matchCount.intValue() * 3);
+            reasons.add("match-count:" + directory.matchCount);
+        }
+        if ("readme.md".equals(basename) || basename.startsWith("readme.")) {
+            score += 30;
+            reasons.add("readme");
+        }
+        if ("docs".equals(lowerPath) || lowerPath.startsWith("docs/") || lowerPath.indexOf("/docs/") >= 0) {
+            score += 20;
+            reasons.add("docs-path");
+        }
+        if ("src".equals(lowerPath) || lowerPath.startsWith("src/") || lowerPath.indexOf("/src/") >= 0) {
+            score += 15;
+            reasons.add("src-path");
+        }
+        if ("test".equals(lowerPath) || "tests".equals(lowerPath) || lowerPath.startsWith("test/") || lowerPath.startsWith("tests/")
+                || lowerPath.indexOf("/test/") >= 0 || lowerPath.indexOf("/tests/") >= 0) {
+            score += 10;
+            reasons.add("test-path");
+        }
+        if (Pattern.compile("(^|/)(generated|vendor|node_modules|dist|build|target|coverage)(/|$)").matcher(lowerPath).find()) {
+            score -= 40;
+            reasons.add("generated-or-vendor-path");
+        }
+        RelevanceInfo relevance = new RelevanceInfo();
+        relevance.score = Integer.valueOf(score);
+        relevance.reasons = reasons;
+        return relevance;
+    }
+
+    private static List<ReadRangeCandidate> readRanges(List<Integer> lines) {
+        List<ReadRangeCandidate> ranges = new ArrayList<ReadRangeCandidate>();
+        int count = Math.min(3, lines.size());
+        for (int index = 0; index < count; index++) {
+            int line = lines.get(index).intValue();
+            ReadRangeCandidate range = new ReadRangeCandidate();
+            range.startLine = Integer.valueOf(Math.max(1, line - 5));
+            range.endLine = Integer.valueOf(line + 5);
+            range.reason = "match";
+            ranges.add(range);
+        }
+        return ranges;
     }
 
     private static Diagnostic diagnostic(DiagnosticSeverity severity, String code, String message, String file, String path, Integer line, Boolean skipped, Map<String, Object> details) {
@@ -774,13 +917,15 @@ public final class Search {
     private static final class IgnoreRule {
         final String baseDirectory;
         final String pattern;
+        final boolean negated;
         final boolean directoryOnly;
         final boolean anchored;
         final boolean hasSlash;
 
-        IgnoreRule(String baseDirectory, String pattern, boolean directoryOnly, boolean anchored, boolean hasSlash) {
+        IgnoreRule(String baseDirectory, String pattern, boolean negated, boolean directoryOnly, boolean anchored, boolean hasSlash) {
             this.baseDirectory = baseDirectory;
             this.pattern = pattern;
+            this.negated = negated;
             this.directoryOnly = directoryOnly;
             this.anchored = anchored;
             this.hasSlash = hasSlash;

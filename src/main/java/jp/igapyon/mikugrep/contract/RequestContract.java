@@ -7,6 +7,7 @@ import java.util.List;
 import jp.igapyon.mikugrep.model.EncodingOptions;
 import jp.igapyon.mikugrep.model.IgnoreMode;
 import jp.igapyon.mikugrep.model.IgnoreOptions;
+import jp.igapyon.mikugrep.model.OutputSort;
 import jp.igapyon.mikugrep.model.OutputMode;
 import jp.igapyon.mikugrep.model.OutputOptions;
 import jp.igapyon.mikugrep.model.SearchOptions;
@@ -87,10 +88,12 @@ public final class RequestContract {
         public OutputOptions output() {
             OutputOptions output = new OutputOptions();
             output.mode = OutputMode.SUMMARY;
+            output.sort = OutputSort.PATH;
             output.maxMatches = 200;
             output.maxMatchesPerFile = 20;
             output.maxLineLength = 240;
             output.maxSnippetsPerFile = 3;
+            output.includeReadfileRequestHints = Boolean.FALSE;
             output.contextLinesBefore = 0;
             output.contextLinesAfter = 0;
             return output;
@@ -98,6 +101,7 @@ public final class RequestContract {
 
         public EncodingOptions encoding() {
             EncodingOptions encoding = new EncodingOptions();
+            encoding.preset = null;
             encoding.defaultEncoding = SupportedEncoding.UTF_8;
             encoding.rules = Collections.emptyList();
             encoding.onDecodeError = "skip";
@@ -118,9 +122,12 @@ public final class RequestContract {
         return new RequestFieldShape()
                 .field("version")
                 .field("root")
+                .field("detectGitRoot")
+                .field("mode")
                 .object("query", new RequestFieldShape()
                         .field("type")
-                        .field("text"))
+                        .field("text")
+                        .field("case"))
                 .object("search", new RequestFieldShape()
                         .field("targets")
                         .field("recursive")
@@ -134,14 +141,17 @@ public final class RequestContract {
                         .field("excludeDirNamePatterns"))
                 .object("output", new RequestFieldShape()
                         .field("mode")
+                        .field("sort")
                         .field("maxMatches")
                         .field("maxMatchesPerFile")
                         .field("maxLineLength")
                         .field("maxSnippetsPerFile")
+                        .field("includeReadfileRequestHints")
                         .field("contextLines")
                         .field("contextLinesBefore")
                         .field("contextLinesAfter"))
                 .object("encoding", new RequestFieldShape()
+                        .field("preset")
                         .field("default")
                         .field("rules")
                         .field("onDecodeError"))

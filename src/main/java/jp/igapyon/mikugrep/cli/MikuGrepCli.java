@@ -13,7 +13,7 @@ import jp.igapyon.mikugrep.json.MikuGrepJson;
 import jp.igapyon.mikugrep.model.MikuGrepResult;
 
 public final class MikuGrepCli {
-    public static final String PRODUCT_VERSION = "0.8.4";
+    public static final String PRODUCT_VERSION = "0.9.0";
 
     private MikuGrepCli() {
     }

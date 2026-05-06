@@ -6,6 +6,58 @@ The stable upstream reference is `vendor/miku-grep`.
 
 Use one entry per upstream file or Java-side extension.
 
+## 2026-05-07 Vendor Snapshot Refresh
+
+```text
+upstream file:
+  vendor/miku-grep
+
+java classes:
+  jp.igapyon.mikugrep.validation.Validation
+  jp.igapyon.mikugrep.search.Search
+  jp.igapyon.mikugrep.search.ListFiles
+  jp.igapyon.mikugrep.coreapi.MikuGrep
+  jp.igapyon.mikugrep.model.*
+
+tests:
+  jp.igapyon.mikugrep.search.SearchTest
+  jp.igapyon.mikugrep.coreapi.MikuGrepTest
+  jp.igapyon.mikugrep.validation.ValidationTest
+  jp.igapyon.mikugrep.cli.MikuGrepCliTest
+
+diff summary:
+  behavior diff:
+    - Upstream `devel` advanced from
+      `6919c0f65d8347c0b92338806e859d4bf59f2fdb` to
+      `c123b943549bb0e85bdc3e95feb4be7b7ddc003d`.
+    - Upstream tag `v0.9.0.1` points at the new snapshot commit.
+    - Upstream package version is 0.9.0.
+    - New request fields include detectGitRoot, mode, query.case,
+      output.sort, output.includeReadfileRequestHints, and encoding.preset.
+    - New behavior includes listFiles mode, agent output mode, relevance
+      sorting, readfile hints, glob query support, case-insensitive matching,
+      and ignore negation.
+  naming diff:
+    - listFiles mode returns top-level files and fileSummary.
+    - agent mode emits agentFile / agentDirectory match types.
+  unmigrated diff:
+    - None recorded for the Java v0.9.0 request / result contract in this
+      follow-up.
+  Java-side extension:
+    - Java packaging remains a Java-side runtime artifact.
+
+follow-up:
+  - Fetched `https://github.com/igapyon/miku-grep.git` into
+    `workplace/upstream-miku-grep`.
+  - Synchronized the vendored snapshot under `vendor/miku-grep`.
+  - Updated `docs/upstream-snapshot.md` to `c123b943549bb0e85bdc3e95feb4be7b7ddc003d`.
+  - Updated Java request validation, model shape, search, listFiles, core API,
+    version, README, and mapping documents.
+  - Added focused Java tests for listFiles, agent relevance/readfile hints,
+    and ignore negation.
+  - `mvn test` passed with 64 tests.
+```
+
 ## 2026-05-03 Vendor Snapshot Refresh
 
 ```text
