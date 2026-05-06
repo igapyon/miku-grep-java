@@ -7,7 +7,9 @@ public enum MatchType implements JsonValueEnum {
     FILEPATH("filepath"),
     DIRECTORY("directory"),
     CONTENT("content"),
-    FILE("file");
+    FILE("file"),
+    AGENT_FILE("agentFile"),
+    AGENT_DIRECTORY("agentDirectory");
 
     private final String jsonValue;
 

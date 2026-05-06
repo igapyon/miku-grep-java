@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonValue;
 public enum EncodingRuleType implements JsonValueEnum {
     PATH_PATTERN("pathPattern"),
     FILE_NAME_PATTERN("fileNamePattern"),
+    PRESET("preset"),
     DEFAULT("default");
 
     private final String jsonValue;

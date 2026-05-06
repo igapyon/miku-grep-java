@@ -5,7 +5,8 @@ import com.fasterxml.jackson.annotation.JsonValue;
 
 public enum OutputMode implements JsonValueEnum {
     DETAIL("detail"),
-    SUMMARY("summary");
+    SUMMARY("summary"),
+    AGENT("agent");
 
     private final String jsonValue;
 

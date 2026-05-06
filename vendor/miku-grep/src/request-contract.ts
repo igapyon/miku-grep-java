@@ -56,14 +56,17 @@ export const DEFAULTS = {
   },
   output: {
     mode: "summary",
+    sort: "path",
     maxMatches: 200,
     maxMatchesPerFile: 20,
     maxLineLength: 240,
     maxSnippetsPerFile: 3,
+    includeReadfileRequestHints: false,
     contextLinesBefore: 0,
     contextLinesAfter: 0,
   },
   encoding: {
+    preset: null,
     default: "utf-8",
     rules: [],
     onDecodeError: "skip",
@@ -79,7 +82,9 @@ export const DEFAULTS = {
 export const REQUEST_SHAPE = {
   version: true,
   root: true,
-  query: { type: true, text: true },
+  detectGitRoot: true,
+  mode: true,
+  query: { type: true, text: true, case: true },
   search: {
     targets: true,
     recursive: true,
@@ -94,14 +99,16 @@ export const REQUEST_SHAPE = {
   },
   output: {
     mode: true,
+    sort: true,
     maxMatches: true,
     maxMatchesPerFile: true,
     maxLineLength: true,
     maxSnippetsPerFile: true,
+    includeReadfileRequestHints: true,
     contextLines: true,
     contextLinesBefore: true,
     contextLinesAfter: true,
   },
-  encoding: { default: true, rules: true, onDecodeError: true },
+  encoding: { preset: true, default: true, rules: true, onDecodeError: true },
   ignore: { mode: true, sources: true, useGlobalGitignore: true },
 } satisfies Record<string, true | Record<string, unknown>>;

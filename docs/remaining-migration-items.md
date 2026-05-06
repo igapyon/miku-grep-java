@@ -43,6 +43,9 @@ Completed implementation:
 - search layer for traversal, filepath/directory/content search, snippet
   trimming, context lines, ignore files, summary counts, diagnostics, and
   encoding selection
+- listFiles mode with file list and file summary output
+- agent output mode, relevance sorting, readfile request hints, glob queries,
+  query case handling, and ignore negation
 - core API facade for request validation, root checks, search execution, and
   result assembly
 - CLI stdin JSON execution, stdout result JSON, stderr error messages, and
@@ -102,6 +105,8 @@ Planned focused regression commands:
 
 ## Latest Verification
 
+- `mvn test` succeeded with 64 tests after the upstream `v0.9.0.1`
+  vendored snapshot update.
 - `mvn test -Dtest=SearchTest` succeeded with 17 tests.
 - `mvn test` succeeded with 61 tests.
 - `mvn package` succeeded with 61 tests and created `target/miku-grep-0.8.4-dist.zip`.

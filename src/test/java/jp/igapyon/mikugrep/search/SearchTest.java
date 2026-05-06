@@ -230,6 +230,19 @@ class SearchTest {
     }
 
     @Test
+    void ignoreNegationCanReincludeLaterMatches() throws Exception {
+        write(".gitignore", "*.tmp\n!keep.tmp\n");
+        write("skip.tmp", "RepositoryMap\n");
+        write("keep.tmp", "RepositoryMap\n");
+
+        SearchResult result = run("{\"targets\":[\"content\"],\"excludeFileNamePatterns\":[]}", null, "RepositoryMap");
+
+        assertEquals(1, result.matches.size());
+        assertEquals("keep.tmp", ((FileSummaryMatch) result.matches.get(0)).file);
+        assertEquals(1, result.summary.filesIgnored);
+    }
+
+    @Test
     void canIncludeDefaultExcludedZipFilesWhenExcludeFilePatternsAreEmpty() throws Exception {
         write("artifact.zip", "not read for filepath search\n");
 

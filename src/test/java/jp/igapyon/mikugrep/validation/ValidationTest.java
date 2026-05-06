@@ -47,6 +47,7 @@ class ValidationTest {
         assertEquals(Integer.valueOf(0), result.effectiveRequest.output.contextLinesBefore);
         assertEquals(Integer.valueOf(0), result.effectiveRequest.output.contextLinesAfter);
         assertEquals(SupportedEncoding.UTF_8, result.effectiveRequest.encoding.defaultEncoding);
+        assertEquals(null, result.effectiveRequest.encoding.preset);
         assertEquals(0, result.effectiveRequest.encoding.rules.size());
         assertEquals("skip", result.effectiveRequest.encoding.onDecodeError);
         assertEquals(IgnoreMode.AUTO, result.effectiveRequest.ignore.mode);
@@ -136,7 +137,7 @@ class ValidationTest {
     @Test
     void rejectsInvalidTopLevelValues() throws Exception {
         assertInvalid(Validation.validateAndNormalize(baseRequestWith("\"version\":2")), "invalid_version");
-        assertInvalid(Validation.validateAndNormalize(baseRequestWith("\"query\":{\"type\":\"glob\",\"text\":\"RepositoryMap\"}")), "invalid_query_type");
+        assertInvalid(Validation.validateAndNormalize(baseRequestWith("\"query\":{\"type\":\"glob\",\"text\":\"RepositoryMap\"}")), "invalid_search_target");
         assertInvalid(Validation.validateAndNormalize(baseRequestWith("\"query\":{\"type\":\"literal\",\"text\":\"\"}")), "empty_query");
         assertInvalid(Validation.validateAndNormalize(baseRequestWith("\"search\":{\"targets\":[]}")), "invalid_search_targets");
         assertInvalid(Validation.validateAndNormalize(baseRequestWith("\"search\":{\"targets\":[\"path\"]}")), "invalid_search_target");

@@ -99,7 +99,7 @@ class MikuGrepJsonTest {
                 + "\"contextLinesBefore\":0,"
                 + "\"contextLinesAfter\":0"
                 + "},"
-                + "\"encoding\":{\"default\":\"utf-8\",\"rules\":[],\"onDecodeError\":\"skip\"},"
+                + "\"encoding\":{\"preset\":null,\"default\":\"utf-8\",\"rules\":[],\"onDecodeError\":\"skip\"},"
                 + "\"ignore\":{\"mode\":\"auto\",\"sources\":[\".gitignore\",\".ignore\",\".git/info/exclude\"],\"useGlobalGitignore\":false,\"loadedSources\":[]}"
                 + "},"
                 + "\"matches\":[{"

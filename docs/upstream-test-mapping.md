@@ -78,6 +78,40 @@ focused regression:
 
 ```text
 upstream test / intent:
+  vendor/miku-grep/test/list-files.test.ts
+  listFiles mode, candidate filtering, file summaries, and traversal counters
+
+java tests:
+  jp.igapyon.mikugrep.coreapi.MikuGrepTest
+
+fixtures:
+  temporary files from JUnit TempDir
+
+focused regression:
+  mvn test -Dtest=MikuGrepTest
+```
+
+```text
+upstream test / intent:
+  vendor/miku-grep/test/search-content.test.ts
+  vendor/miku-grep/test/search-filename.test.ts
+  agent output mode, relevance sorting, readfile hints, glob query, and
+  case-insensitive query handling
+
+java tests:
+  jp.igapyon.mikugrep.coreapi.MikuGrepTest
+  jp.igapyon.mikugrep.search.SearchTest
+  jp.igapyon.mikugrep.validation.ValidationTest
+
+fixtures:
+  temporary files from JUnit TempDir
+
+focused regression:
+  mvn test -Dtest=MikuGrepTest,SearchTest,ValidationTest
+```
+
+```text
+upstream test / intent:
   vendor/miku-grep/test/validation.test.ts
 
 java tests:
