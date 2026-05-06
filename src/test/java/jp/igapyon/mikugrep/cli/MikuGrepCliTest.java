@@ -53,6 +53,19 @@ class MikuGrepCliTest {
         assertTrue(run.stdout.contains("search.targets"));
         assertTrue(run.stdout.contains("output.mode"));
         assertTrue(run.stdout.contains("encoding.rules"));
+        assertTrue(run.stdout.contains("detectGitRoot"));
+        assertTrue(run.stdout.contains("encoding.preset"));
+        assertTrue(run.stdout.contains("japanese-legacy"));
+        assertTrue(run.stdout.contains("readfileHints"));
+        assertTrue(run.stdout.contains("agentFile"));
+        assertTrue(run.stdout.contains("agentDirectory"));
+        assertTrue(run.stdout.contains("invalid_mode"));
+        assertTrue(run.stdout.contains("invalid_query_case"));
+        assertTrue(run.stdout.contains("invalid_output_sort"));
+        assertTrue(run.stdout.contains("invalid_encoding_preset"));
+        assertTrue(run.stdout.contains("Case-insensitive content search"));
+        assertTrue(run.stdout.contains("File inventory"));
+        assertTrue(run.stdout.contains("Agent summary with relevance sort"));
     }
 
     @Test
