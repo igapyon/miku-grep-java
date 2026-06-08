@@ -132,6 +132,27 @@ class MikuGrepJsonTest {
                 + "}", json);
     }
 
+    @Test
+    void writesPrettyResultLikeNodeJsonStringifySpacing() throws Exception {
+        MikuGrepResult result = new MikuGrepResult();
+        result.version = 1;
+        result.ok = true;
+        result.error = null;
+        result.effectiveRequest = effectiveRequest();
+        result.matches = new ArrayList<jp.igapyon.mikugrep.model.MikuGrepMatch>();
+        result.matches.add(fileSummaryMatch());
+        result.summary = summary();
+        result.diagnostics = Collections.emptyList();
+
+        String json = MikuGrepJson.writePrettyResult(result);
+
+        assertEquals(true, json.contains("\"version\": 1"));
+        assertEquals(false, json.contains("\"version\" : 1"));
+        assertEquals(true, json.contains("\"targets\": [\n        \"content\"\n      ]"));
+        assertEquals(true, json.contains("\"includeFileNamePatterns\": []"));
+        assertEquals(false, json.contains("[ ]"));
+    }
+
     private static EffectiveRequest effectiveRequest() {
         EffectiveRequest request = new EffectiveRequest();
         request.root = ".";

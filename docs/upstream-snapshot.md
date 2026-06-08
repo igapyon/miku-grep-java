@@ -4,8 +4,8 @@ This repository uses a vendored upstream snapshot for straight conversion.
 
 - upstream repository: `https://github.com/igapyon/miku-grep`
 - upstream default branch: `devel`
-- upstream commit: `c123b943549bb0e85bdc3e95feb4be7b7ddc003d`
-- upstream tag: `v0.9.0.1`; upstream package version is `0.9.0`
+- upstream commit: `c59b8823833d90cd91870d595ef98789545dec62`
+- upstream tag: `v0.10.0`; upstream package version is `0.10.0`
 - vendored path: `vendor/miku-grep`
 
 The vendored upstream source is the stable reference for mapping documents such as

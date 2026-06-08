@@ -22,7 +22,7 @@ class MikuGrepCliTest {
         CliRun run = run(new String[] { "--version" }, "");
 
         assertEquals(0, run.exitCode);
-        assertEquals("miku-grep 0.9.0\n", run.stdout);
+        assertEquals("miku-grep 0.10.0\n", run.stdout);
         assertEquals("", run.stderr);
     }
 
@@ -32,7 +32,8 @@ class MikuGrepCliTest {
 
         assertEquals(2, run.exitCode);
         assertEquals("", run.stdout);
-        assertEquals("usage: miku-grep [--version|--help]\n", run.stderr);
+        assertTrue(run.stderr.contains("unknown option: --bad"));
+        assertTrue(run.stderr.contains("usage: miku-grep QUERY [ROOT]"));
     }
 
     @Test
@@ -42,6 +43,10 @@ class MikuGrepCliTest {
         assertEquals(0, run.exitCode);
         assertEquals("", run.stderr);
         assertTrue(run.stdout.contains("USAGE"));
+        assertTrue(run.stdout.contains("QUICK EXAMPLES"));
+        assertTrue(run.stdout.contains("ARGUMENT OPTIONS"));
+        assertTrue(run.stdout.contains("ARGUMENT EXAMPLES"));
+        assertTrue(run.stdout.contains("JSON EXAMPLES"));
         assertTrue(run.stdout.contains("MINIMAL REQUEST"));
         assertTrue(run.stdout.contains("REQUEST FIELDS"));
         assertTrue(run.stdout.contains("RESULT SHAPE"));
@@ -69,6 +74,76 @@ class MikuGrepCliTest {
     }
 
     @Test
+    void argsFirstSearchReturnsTextByDefault() throws Exception {
+        writeFixture();
+
+        CliRun run = run(new String[] { "RepositoryMap", tempDir.toString() }, "");
+
+        assertEquals(0, run.exitCode);
+        assertEquals("", run.stderr);
+        assertTrue(run.stdout.contains("matches:"));
+        assertTrue(run.stdout.contains("README.md"));
+        assertTrue(run.stdout.indexOf("\"ok\"") < 0);
+    }
+
+    @Test
+    void argsFirstSearchCanReturnJson() throws Exception {
+        writeFixture();
+
+        CliRun run = run(new String[] { "RepositoryMap", tempDir.toString(), "--format", "json" }, "");
+
+        assertEquals(0, run.exitCode);
+        assertEquals("", run.stderr);
+        assertTrue(run.stdout.contains("\"ok\": true"));
+        assertTrue(run.stdout.contains("\"file\": \"README.md\""));
+    }
+
+    @Test
+    void argsFirstFilesPrintsMatchingFilePaths() throws Exception {
+        writeFixture();
+
+        CliRun run = run(new String[] { "RepositoryMap", tempDir.toString(), "--files" }, "");
+
+        assertEquals(0, run.exitCode);
+        assertEquals("", run.stderr);
+        assertTrue(run.stdout.contains("README.md\n"));
+        assertTrue(run.stdout.contains("src/RepositoryMap.java\n"));
+    }
+
+    @Test
+    void argsFirstFilesWithoutQueryListsInventory() throws Exception {
+        writeFixture();
+
+        CliRun run = run(new String[] { "--files", tempDir.toString() }, "");
+
+        assertEquals(0, run.exitCode);
+        assertEquals("", run.stderr);
+        assertTrue(run.stdout.contains("README.md\n"));
+        assertTrue(run.stdout.contains("src/RepositoryMap.java\n"));
+        assertTrue(run.stdout.contains("src/legacy.txt\n"));
+    }
+
+    @Test
+    void argsFirstRejectsMutuallyExclusiveModes() throws Exception {
+        writeFixture();
+
+        CliRun run = run(new String[] { "RepositoryMap", tempDir.toString(), "--agent", "--context", "2" }, "");
+
+        assertEquals(2, run.exitCode);
+        assertEquals("", run.stdout);
+        assertTrue(run.stderr.contains("mutually exclusive"));
+    }
+
+    @Test
+    void helpDoesNotReadStdin() throws Exception {
+        CliRun run = run(new String[] { "--help" }, "{");
+
+        assertEquals(0, run.exitCode);
+        assertTrue(run.stdout.contains("USAGE"));
+        assertEquals("", run.stderr);
+    }
+
+    @Test
     void rejectsMalformedStdin() throws Exception {
         CliRun run = run(new String[0], "{");
 
@@ -85,8 +160,8 @@ class MikuGrepCliTest {
 
         assertEquals(0, run.exitCode);
         assertEquals("", run.stderr);
-        assertTrue(run.stdout.contains("\"ok\" : true"));
-        assertTrue(run.stdout.contains("\"file\" : \"README.md\""));
+        assertTrue(run.stdout.contains("\"ok\": true"));
+        assertTrue(run.stdout.contains("\"file\": \"README.md\""));
     }
 
     @Test
@@ -95,8 +170,8 @@ class MikuGrepCliTest {
 
         assertEquals(1, run.exitCode);
         assertEquals("", run.stderr);
-        assertTrue(run.stdout.contains("\"ok\" : false"));
-        assertTrue(run.stdout.contains("\"code\" : \"invalid_version\""));
+        assertTrue(run.stdout.contains("\"ok\": false"));
+        assertTrue(run.stdout.contains("\"code\": \"invalid_version\""));
     }
 
     private static CliRun run(String[] args, String stdin) throws Exception {
@@ -114,6 +189,14 @@ class MikuGrepCliTest {
                 + "\"root\":\"" + root.replace("\\", "\\\\") + "\","
                 + "\"query\":{\"type\":\"literal\",\"text\":\"" + query + "\"}"
                 + "}";
+    }
+
+    private void writeFixture() throws Exception {
+        Files.createDirectories(tempDir.resolve("src"));
+        Files.write(tempDir.resolve("README.md"), "RepositoryMap\n".getBytes(StandardCharsets.UTF_8));
+        Files.write(tempDir.resolve("src").resolve("RepositoryMap.java"),
+                "class RepositoryMap {\n  RepositoryMap field;\n}\n".getBytes(StandardCharsets.UTF_8));
+        Files.write(tempDir.resolve("src").resolve("legacy.txt"), "legacy\n".getBytes(StandardCharsets.UTF_8));
     }
 
     private static final class CliRun {
