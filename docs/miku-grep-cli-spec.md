@@ -3,12 +3,18 @@
 This document describes the Java runtime CLI contract for `miku-grep-java`.
 
 The Java CLI preserves the upstream Node.js `miku-grep` stdin / stdout JSON
-contract as the primary compatibility target. The upstream snapshot used for
+contract and args-first search entry point. The upstream snapshot used for
 straight conversion is recorded in `docs/upstream-snapshot.md`.
 
 ## Usage
 
 ```bash
+java -jar target/miku-grep.jar TODO .
+java -jar target/miku-grep.jar TODO . --context 2
+java -jar target/miku-grep.jar TODO . --files
+java -jar target/miku-grep.jar TODO . --agent
+java -jar target/miku-grep.jar TODO . --format json
+java -jar target/miku-grep.jar --files .
 java -jar target/miku-grep.jar < request.json > result.json
 java -jar target/miku-grep.jar --version
 java -jar target/miku-grep.jar --help
@@ -17,10 +23,67 @@ java -jar target/miku-grep.jar --help
 Distribution zip users can run the versioned jar inside the extracted archive:
 
 ```bash
-java -jar miku-grep-0.9.0.jar < request.json > result.json
+java -jar miku-grep-0.10.0.jar < request.json > result.json
 ```
 
-## Stdio Contract
+## Args-First Contract
+
+When query arguments are provided, stdout contains text unless `--format json`
+or `--json` is specified. The text format is intended for humans and AI agents
+in an interactive exploration loop. JSON remains the machine contract.
+
+```bash
+java -jar target/miku-grep.jar QUERY [ROOT]
+java -jar target/miku-grep.jar QUERY [ROOT] --agent
+java -jar target/miku-grep.jar QUERY [ROOT] --files
+java -jar target/miku-grep.jar QUERY [ROOT] --context N
+java -jar target/miku-grep.jar QUERY [ROOT] --format json
+java -jar target/miku-grep.jar --files [ROOT]
+```
+
+Supported argument options:
+
+- `--agent`
+  - text mode returns a compact next-read summary
+  - JSON mode maps to `output.mode: "agent"`, relevance sort, and readfile hints
+- `--files`
+  - with `QUERY`, prints matching file paths
+  - without `QUERY`, lists files under `ROOT`
+- `--context N`
+  - maps to `output.mode: "detail"` and `output.contextLines`
+- `--limit N`
+  - maps to `output.maxMatches`
+- `--top-files N`
+  - maps to agent output with relevance sort and max matches
+- `--format text|json` and `--json`
+  - select text or JSON output for args-first calls
+- `--encoding utf-8|shift_jis`
+  - maps to `encoding.default`
+- `--encoding-preset japanese-legacy`
+  - maps to `encoding.preset`
+- `--ignore-case` / `-i`
+  - maps to `query.case: "insensitive"`
+- `--regex`
+  - maps to `query.type: "regex"`
+- `--glob`
+  - maps to `query.type: "glob"` and filepath search
+- `--path`
+  - maps to filepath search
+- `--all-targets`
+  - maps to filepath, directory, and content search
+- `--detect-git-root`
+  - maps to `detectGitRoot: true`
+- `--no-ignore`
+  - maps to `ignore.mode: "none"`
+
+The following combinations are rejected as usage errors:
+
+- `--files`, `--agent` / `--top-files`, and `--context`
+- `--regex` and `--glob`
+- `--path` and `--all-targets`
+- `--glob` and `--all-targets`
+
+## Stdio JSON Contract
 
 ```text
 stdin
@@ -35,10 +98,11 @@ stderr
   runtime-level messages
 ```
 
-stdout is reserved for result JSON except for explicit meta commands such as
-`--version` and `--help`.
+stdout is reserved for result JSON when `--format json` or stdin request JSON is
+used, except for explicit meta commands such as `--version` and `--help`.
 
-Result JSON is pretty-printed with 2-space indentation and a trailing newline.
+Result JSON is pretty-printed with Node `JSON.stringify(result, null, 2)`-style
+2-space indentation and a trailing newline.
 
 Request JSON and result JSON both use top-level `version: 1`.
 

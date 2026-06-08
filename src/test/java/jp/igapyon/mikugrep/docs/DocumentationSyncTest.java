@@ -20,11 +20,14 @@ class DocumentationSyncTest {
 
         assertTrue(readme.contains("docs/miku-grep-cli-spec.md"));
         assertTrue(readme.contains("java -jar target/miku-grep.jar < request.json > result.json"));
-        assertTrue(readme.contains("stdout is reserved for result JSON except for `--version` and `--help`"));
+        assertTrue(readme.contains("java -jar target/miku-grep.jar TODO . --format json"));
+        assertTrue(readme.contains("With query arguments, the default output is human-readable text"));
         assertTrue(readme.contains("Java `Pattern`"));
         assertTrue(readme.contains("Shift_JIS decoding"));
 
         assertTrue(spec.contains("java -jar target/miku-grep.jar < request.json > result.json"));
+        assertTrue(spec.contains("java -jar target/miku-grep.jar QUERY [ROOT]"));
+        assertTrue(spec.contains("Args-First Contract"));
         assertTrue(spec.contains("stdout is reserved for result JSON"));
         assertTrue(spec.contains("Unknown request fields are validation errors"));
         assertTrue(spec.contains("Java `Pattern`"));

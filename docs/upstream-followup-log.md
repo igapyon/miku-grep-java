@@ -6,6 +6,59 @@ The stable upstream reference is `vendor/miku-grep`.
 
 Use one entry per upstream file or Java-side extension.
 
+## 2026-06-08 Vendor Snapshot Refresh
+
+```text
+upstream file:
+  vendor/miku-grep
+
+java classes:
+  jp.igapyon.mikugrep.cli.MikuGrepCli
+  jp.igapyon.mikugrep.cli.HelpText
+
+tests:
+  jp.igapyon.mikugrep.cli.MikuGrepCliTest
+  jp.igapyon.mikugrep.docs.DocumentationSyncTest
+
+diff summary:
+  behavior diff:
+    - Upstream `devel` advanced from
+      `c123b943549bb0e85bdc3e95feb4be7b7ddc003d` to
+      `c59b8823833d90cd91870d595ef98789545dec62`.
+    - Upstream tag `v0.10.0` points at the new snapshot commit.
+    - Upstream package version is 0.10.0.
+    - Args-first CLI was added: `miku-grep QUERY [ROOT]`.
+    - Query-argument calls default to human-readable text output.
+    - `--format json` and `--json` preserve structured JSON output for
+      args-first calls.
+    - `--files`, `--agent`, `--context`, `--limit`, `--top-files`,
+      `--encoding`, `--encoding-preset`, `--ignore-case`, `--regex`,
+      `--glob`, `--path`, `--all-targets`, `--detect-git-root`, and
+      `--no-ignore` map to request JSON fields.
+  naming diff:
+    - CLI help now distinguishes argument examples from JSON examples.
+    - Java CLI spec documents args-first text output separately from stdin
+      JSON output.
+  unmigrated diff:
+    - None for the Java CLI adapter behavior covered by this follow-up.
+  Java-side extension:
+    - Java runtime keeps Java `Pattern` regex behavior and Java packaging.
+
+follow-up:
+  - Fetched `https://github.com/igapyon/miku-grep.git` into
+    `workplace/upstream-miku-grep`.
+  - Synchronized the vendored snapshot under `vendor/miku-grep`.
+  - Updated `docs/upstream-snapshot.md` to
+    `c59b8823833d90cd91870d595ef98789545dec62`.
+  - Updated Java CLI args parser, text formatter, help text, README, Java CLI
+    spec, version, and focused CLI tests.
+  - `mvn test -Dtest=MikuGrepCliTest` passed with 12 tests.
+  - `mvn test -Dtest=MikuGrepCliTest,DocumentationSyncTest` passed with
+    14 tests.
+  - `mvn package` passed with 71 tests and created
+    `target/miku-grep-0.10.0-dist.zip`.
+```
+
 ## 2026-05-07 Vendor Snapshot Refresh
 
 ```text

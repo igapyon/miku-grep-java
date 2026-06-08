@@ -40,7 +40,7 @@ following items.
 - `/` path separators in result JSON
 - no absolute paths in result JSON
 - unknown request fields as validation errors
-- 2-space pretty-printed JSON on stdout
+- Node `JSON.stringify(result, null, 2)`-style pretty-printed JSON on stdout
 - trailing newline after stdout JSON
 - `--help` and `--version` as stdin-free meta commands
 - Java runtime CLI documentation in `README.md` and
@@ -121,3 +121,8 @@ CLI contract and should be updated together:
 
 Java-side runtime differences should be explicit in these documents instead of
 silently inheriting Node.js-only wording.
+
+Pretty-printed JSON should intentionally follow Node `JSON.stringify(result,
+null, 2)` spacing where practical: object field separators use `": "`, arrays
+use multiline indentation for non-empty arrays, and empty arrays / objects stay
+compact as `[]` / `{}`.

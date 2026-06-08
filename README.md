@@ -3,8 +3,8 @@
 Java straight-conversion runtime for `miku-grep`.
 
 This repository ports the upstream Node.js / TypeScript `miku-grep` CLI into a
-Java 1.8-compatible Maven runtime while preserving the stdin / stdout JSON
-contract as the primary compatibility target.
+Java 1.8-compatible Maven runtime while preserving the upstream search contract
+and stdin / stdout JSON interface for machine-readable automation.
 
 The Java CLI contract is documented in `docs/miku-grep-cli-spec.md`.
 
@@ -19,13 +19,21 @@ mvn package
 Run the CLI:
 
 ```bash
+java -jar target/miku-grep.jar TODO .
+java -jar target/miku-grep.jar TODO . --context 2
+java -jar target/miku-grep.jar TODO . --files
+java -jar target/miku-grep.jar TODO . --agent
+java -jar target/miku-grep.jar TODO . --format json
+java -jar target/miku-grep.jar --files .
 java -jar target/miku-grep.jar < request.json > result.json
 java -jar target/miku-grep.jar --version
 java -jar target/miku-grep.jar --help
 ```
 
-The primary input is stdin JSON. The primary output is stdout JSON.
-stdout is reserved for result JSON except for `--version` and `--help`.
+With query arguments, the default output is human-readable text. Use
+`--format json` for structured result JSON. With no arguments, stdin JSON is
+still accepted and stdout is result JSON. `--version` and `--help` are
+stdin-free metadata commands.
 
 ## Minimal Request
 
@@ -53,7 +61,7 @@ stdout is reserved for result JSON except for `--version` and `--help`.
   - executable shaded runtime jar
 - `target/miku-grep-sources.jar`
   - source jar
-- `target/miku-grep-0.9.0-dist.zip`
+- `target/miku-grep-0.10.0-dist.zip`
   - distribution zip containing the versioned runtime jar, README, LICENSE,
     and runtime-oriented docs
 
@@ -82,7 +90,7 @@ The Java runtime intentionally documents these accepted differences:
 Other observable JSON contract differences should be treated as regressions
 unless explicitly recorded in the follow-up log.
 
-## v0.9.0 Contract Notes
+## v0.10.0 Contract Notes
 
 - Search targets are specified as `search.targets`, a non-empty array of
   `content`, `filepath`, and/or `directory`.
